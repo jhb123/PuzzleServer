@@ -1,44 +1,28 @@
 import functools
+import json
 
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from flaskr.auth import token_required
 from flaskr.db import get_db
 
 bp = Blueprint('puzzles', __name__, url_prefix='/puzzles')
 
 
-@bp.route('/search', methods=('GET', 'POST'))
-def register():
-    # if request.method == 'POST':
-    #     puzzle_id = request.form['puzzle_id']
-    #     db = get_db()
-    #     error = None
-    #
-    #     if not puzzle_id:
-    #         error = 'puzzle ID is required.'
-    #
-    #     if error is None:
-    #         try:
-    #             db.execute("SELECT * WHERE id=(?)",puzzle_id)
-    #             #db.commit()
-    #             result = db.fetchall()
-    #             for row in result:
-    #                 print(row)
-    #
-    #         except db.IntegrityError:
-    #             error = f"{puzzle_id} is not found."
-    #     else:
-    #         return redirect(url_for("auth.login"))
-    #
-    #     flash(error)
+@bp.route('/search', methods=['POST'])
+@token_required
+def search():
+    id = request.json.get('id')
     db = get_db()
-    curr = db.cursor()
-    curr.execute("SELECT * From puzzle_table WHERE id='20/5/2023 08:42:09'")
-    result = curr.fetchall()
-    for row in result:
-        print(row)
+    puzzle = db.execute(
+        'SELECT * FROM puzzle_table WHERE id = ?', (id,)
+    ).fetchone()
 
-    return f"{result[0][1]}"
+    #curr = db.cursor()
+    #curr.execute(f"SELECT * From puzzle_table WHERE id='{id}'")
+    #result = curr.fetchall()
+
+    return json.loads(puzzle["puzzle"]), 200
