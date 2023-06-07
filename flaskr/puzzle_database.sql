@@ -9,7 +9,9 @@ DROP TABLE IF EXISTS room_master_table;
 CREATE TABLE user (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL
+  password TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  resetGuid TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE android_metadata (locale TEXT);
