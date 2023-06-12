@@ -15,6 +15,8 @@ from googleapiclient.errors import HttpError
 import base64
 from email.message import EmailMessage
 import uuid
+from pyisemail import is_email
+
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -31,14 +33,17 @@ def register():
     db = get_db()
     error = None
 
+    valid_email = is_email(email, check_dns=True)
+
     if not username:
         error = 'Username is required.'
     elif not password:
         error = 'Password is required.'
-    elif not email:
-        error = 'email is required.'
+    elif not valid_email:
+            error = 'email is not valid.'
 
     if error is not None:
+        current_app.logger.info(error)
         return error, 400
 
     else:
@@ -48,7 +53,10 @@ def register():
                 (username, generate_password_hash(password), email, str(uuid.uuid4())),
             )
             db.commit()
-            return "Created new user", 201
+
+            token = generate_token(username)
+
+            return jsonify({'token': token}), 201
         except db.IntegrityError as e:
             # figure out how to tell if its username or email which is conflicted.
             error = "username or email already registered"
@@ -119,6 +127,7 @@ def verify_token(token):
 def login2():
     # Authenticate the user (e.g., check username and password)
     # If authentication is successful, generate a token
+    current_app.logger.info(request.json)
     username = request.json.get('username')
     password = request.json.get('password')
 
@@ -156,13 +165,26 @@ def reset_password():
     if request.method == 'GET':
 
         email = request.args.get("email")
+        if email != None:
+            return "No email submitted", 400
+
         try:
+            db = get_db()
+            user = db.execute(
+                'SELECT username FROM user WHERE email = ?', (email,)
+            ).fetchone()
+
             email_body = generate_reset_password_email(email)
             send_reset_password_email(email, email_body)
-            return "Ok", 200
+            return user["username"], 200
         except TypeError as e:
             current_app.logging.warning(e)
             return "No such user", 404
+        except db.IntegrityError as e:
+            # figure out how to tell if its username or email which is conflicted.
+            current_app.logging.warning(e)
+            error = "username or email already registered"
+            return error, 404
 
     elif request.method == "POST":
 
@@ -170,14 +192,21 @@ def reset_password():
         password = request.json.get('password')
         reset_guid = request.json.get('resetGuid')
 
+        if username == "" or username == None:
+            return "Username empty", 400
+        if password == "" or password == None:
+            return "password empty", 400
+        if reset_guid == "" or reset_guid == None:
+            return "reset_guid empty", 400
+
         db = get_db()
 
         # check valid reset code
-        userd_data = db.execute(
+        user_data = db.execute(
             'SELECT * FROM user WHERE resetGuid = ?', (reset_guid,)
         ).fetchone()
 
-        current_app.logger.info(f"Reset code for {userd_data['email']} received.")
+        current_app.logger.info(f"Reset code for {user_data['email']} received.")
         current_app.logger.info(f"trying to use {password} for new password")
 
         # update user with valid reset code
@@ -195,11 +224,11 @@ def reset_password():
         )
         db.commit()
         current_app.logger.info(f"new update code {newGuid}")
-
+        token = generate_token(username)
 
         # cursor.execute('''UPDATE books SET price = ? WHERE id = ?''', (newPrice, book_id))
 
-        return "OK", 200
+        return token, 200
 
 
 def generate_reset_password_email(email: str) -> str:
