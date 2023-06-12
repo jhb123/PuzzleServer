@@ -1,16 +1,20 @@
+import json
 import os
 
-from flask import Flask
+from flask import Flask, render_template
+from flask_sse import sse
 
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    # app.config.from_file("../config.json", load=json.load)
+
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
     )
-
+    app.config["REDIS_URL"] = "redis://localhost"
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -25,9 +29,16 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    app.register_blueprint(sse, url_prefix='/stream')
+
+    @app.route('/test')
+    def index():
+        return render_template("index.html")
+
     # a simple page that says hello
     @app.route('/hello')
     def hello():
+        sse.publish({"message": "Hello!"}, type='greeting')
         return 'Hello, World!'
 
     from . import db
