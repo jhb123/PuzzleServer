@@ -1,4 +1,3 @@
-import json
 import os
 
 from flask import Flask, render_template
@@ -31,14 +30,18 @@ def create_app(test_config=None):
 
     app.register_blueprint(sse, url_prefix='/stream')
 
-    @app.route('/test')
+    @app.route('/test_sse')
     def index():
+        return render_template("index.html")
+
+    @app.route('/test_see_ping')
+    def index():
+        sse.publish({"message": "Hello!"}, type='greeting')
         return render_template("index.html")
 
     # a simple page that says hello
     @app.route('/hello')
     def hello():
-        sse.publish({"message": "Hello!"}, type='greeting')
         return 'Hello, World!'
 
     from . import db
