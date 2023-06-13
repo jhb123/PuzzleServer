@@ -1,8 +1,11 @@
 import os
 
+import socketio
+from flask_socketio import SocketIO, send, emit
 from flask import Flask, render_template
 from flask_sse import sse
 
+socketio = SocketIO()
 
 def create_app(test_config=None):
     # create and configure the app
@@ -30,18 +33,24 @@ def create_app(test_config=None):
 
     app.register_blueprint(sse, url_prefix='/stream')
 
-    @app.route('/test_sse')
+    @app.route("/")
     def index():
         return render_template("index.html")
 
-    @app.route('/test_see_ping')
-    def index():
-        sse.publish({"message": "Hello!"}, type='greeting')
-        return render_template("index.html")
+    @app.route('/test_sse')
+    def test_sse():
+        return render_template("test_sse.html")
+
+    # @app.route('/test_sse_ping')
+    # def index():
+    #     sse.publish({"message": "Hello!"}, type='greeting')
+    #     return 'Hello, World!'
 
     # a simple page that says hello
     @app.route('/hello')
     def hello():
+        sse.publish({"message": "Hello!"}, type='greeting')
+        socketio.emit("my response", 'Someone went to /hello')
         return 'Hello, World!'
 
     from . import db
@@ -52,5 +61,14 @@ def create_app(test_config=None):
 
     from . import puzzles
     app.register_blueprint(puzzles.bp)
+
+    # socket_app = SocketIO(app)
+
+    @socketio.on('my event')
+    def handle_message(event):
+        app.logger.info(event["data"])
+        emit("my response", 'Connected')
+
+    socketio.init_app(app)
 
     return app
