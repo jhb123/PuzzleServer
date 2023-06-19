@@ -98,7 +98,6 @@ def verify_token(token):
 def login():
     # Authenticate the user (e.g., check username and password)
     # If authentication is successful, generate a token
-    current_app.logger.info(request.json)
     username = request.json.get('username')
     password = request.json.get('password')
 
@@ -161,9 +160,6 @@ def reset_password():
             'SELECT * FROM user WHERE resetGuid = ?', (reset_guid,)
         ).fetchone()
 
-        current_app.logger.info(f"Reset code for {user_data['email']} received.")
-        current_app.logger.info(f"trying to use {password} for new password")
-
         # update user with valid reset code
         cursor = db.cursor()
         cursor.execute(
@@ -178,7 +174,6 @@ def reset_password():
             (new_guid, username)
         )
         db.commit()
-        current_app.logger.info(f"new update code {new_guid}")
         token = generate_token(username)
 
         # cursor.execute('''UPDATE books SET price = ? WHERE id = ?''', (newPrice, book_id))
