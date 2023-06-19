@@ -25,7 +25,13 @@ def create_app(test_config=None):
 
     app.config['ICON_UPLOAD_FOLDER'] = f"{app_dir_path}/uploads/icons"
     app.config['PUZZLE_UPLOAD_FOLDER'] = f"{app_dir_path}/uploads/puzzles"
-    app.config['ZIP_FOLDER'] = f"{app_dir_path}/uploads/zips"
+
+    if not os.path.isdir(app.config['ICON_UPLOAD_FOLDER']):
+        app.logger.info("Creating icon upload folder")
+        os.makedirs(app.config['ICON_UPLOAD_FOLDER'])
+    if not os.path.isdir(app.config['PUZZLE_UPLOAD_FOLDER']):
+        app.logger.info("Creating icon upload folder")
+        os.makedirs(app.config['PUZZLE_UPLOAD_FOLDER'])
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
