@@ -26,3 +26,14 @@ To generate the configuration for production, create a `config.py` containing a 
 ```commandline
 python -c 'import secrets; print(secrets.token_hex())'
 ```
+
+## Building
+generate the requirements with pipreqs
+```commandline
+pip install build
+python -m build --wheel
+```
+Install with 
+```commandline
+pip install flaskr-1.0.0-py3-none-any.whl
+```

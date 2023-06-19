@@ -1,19 +1,21 @@
-import os
-from functools import wraps
 import base64
-from email.message import EmailMessage
+import os
 import uuid
+from email.message import EmailMessage
+from functools import wraps
+
+import jwt
+from flask import (
+    Blueprint, g, redirect, request, session, url_for, current_app, jsonify
+)
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from pyisemail import is_email
-import jwt
-from flask import (
-    Blueprint, g, redirect, request, session, url_for, current_app, jsonify
-)
 from werkzeug.security import check_password_hash, generate_password_hash
+
 from flaskr.db import get_db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')

@@ -1,14 +1,6 @@
-import json
 import os
-import time
 
-import socketio
-from flask_socketio import SocketIO, send, emit
-from flask import Flask, render_template, request, redirect, url_for, Response, stream_with_context
-from flask_sse import sse
-
-socketio = SocketIO()
-
+from flask import Flask, render_template
 
 def create_app(test_config=None):
     # create and configure the app

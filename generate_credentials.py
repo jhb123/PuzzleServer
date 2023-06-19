@@ -1,8 +1,8 @@
 import os
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-
 
 if __name__ == "__main__":
     scopes = ["https://mail.google.com/"]

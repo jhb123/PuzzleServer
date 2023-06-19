@@ -2,10 +2,11 @@ import json
 import os
 import zipfile
 from io import BytesIO
-from flask import Blueprint, current_app,send_file, request
+
+from flask import Blueprint, current_app, send_file, request
+
 from flaskr.auth import token_required
 from flaskr.db import get_db
-
 
 bp = Blueprint('puzzles', __name__, url_prefix='/puzzles')
 
