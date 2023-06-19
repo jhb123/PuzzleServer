@@ -169,3 +169,4 @@ dump.rdb
 flaskr/__pycache__/__init__.cpython-311.pyc
 flaskr/uploads/*
 *.pyc
+config.py

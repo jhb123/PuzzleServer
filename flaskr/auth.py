@@ -19,7 +19,7 @@ from flaskr.db import get_db
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 # Secret key used to sign and verify the JWTs
-secret_key = 'iLoveCats'
+# secret_key = 'iLoveCats'
 
 
 @bp.route('/register', methods=['POST'])
@@ -80,14 +80,14 @@ def logout():
 
 # Generate a token for a given user
 def generate_token(username):
-    token = jwt.encode({'username': username}, secret_key, algorithm='HS256')
+    token = jwt.encode({'username': username}, current_app.config["JWT_KEY"], algorithm='HS256')
     return token
 
 
 # Verify and decode a token
 def verify_token(token):
     try:
-        decoded = jwt.decode(token, secret_key, algorithms=['HS256'])
+        decoded = jwt.decode(token, current_app.config["JWT_KEY"], algorithms=['HS256'])
         return decoded
     except jwt.InvalidTokenError:
         return None
