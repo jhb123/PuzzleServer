@@ -1,26 +1,6 @@
 # PuzzleServer
 
-This server uses redis and flask to implement the server from the crossword app. The current way to start the server is
-```commandline
-python run_server.py
-```
-
-## Redis
-Start the redis sever with
-```commandline
-brew services start redis
-```
-Stop the redis server with
-```commandline
-brew services stop redis
-```
-## Flask
-To use gevent and websockets, start the server with
-```commandline
-gunicorn -k gevent -w 1 run_server:app
-```
-
-Start the server with:
+Start the server locally with:
 ```commandline
 gunicorn -w 4 -b 0.0.0.0:5000 run_server:app
 ```
@@ -38,7 +18,11 @@ Initialise database with
 ```commandline
 flask --app flaskr init-db
 ```
-
 Stop the server with `ctrl+C`
 
-Note, credentials must be generated for the password reset to work.
+Note, credentials must be generated for the password reset to work. Use `generate_credentials.py` to create the nessesary files. 
+
+To generate the configuration for production, create a `config.py` containing a `SECRET_KEY` and `JWT_KEY`. Generate these strings with 
+```commandline
+python -c 'import secrets; print(secrets.token_hex())'
+```
