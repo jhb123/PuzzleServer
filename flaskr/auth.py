@@ -202,18 +202,21 @@ def send_reset_password_email(email: str, email_body: str):
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', scopes)
+    path_to_token = current_app.config['GMAIL_TOKEN']
+    path_to_creds = current_app.config['GMAIL_CREDENTIALS']
+
+    if os.path.exists(path_to_token):
+        creds = Credentials.from_authorized_user_file(path_to_token, scopes)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', scopes)
+                path_to_creds, scopes)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.json', 'w') as token:
+        with open(path_to_token, 'w') as token:
             token.write(creds.to_json())
 
     try:

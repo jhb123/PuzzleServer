@@ -15,8 +15,13 @@ def create_app(test_config=None):
 
     app_dir_path = os.path.dirname(os.path.realpath(__file__))
 
+    secret_configs = '/'.join(app_dir_path.split('/')[0:-1])
+
     app.config['ICON_UPLOAD_FOLDER'] = f"{app_dir_path}/uploads/icons"
     app.config['PUZZLE_UPLOAD_FOLDER'] = f"{app_dir_path}/uploads/puzzles"
+    app.config['GMAIL_TOKEN'] = f"{secret_configs}/token.json"
+    app.config['GMAIL_CREDENTIALS'] = f"{secret_configs}/credentials.json"
+
 
     if not os.path.isdir(app.config['ICON_UPLOAD_FOLDER']):
         app.logger.info("Creating icon upload folder")
