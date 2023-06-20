@@ -44,10 +44,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    @app.route("/")
-    def index():
-        return render_template("index.html")
-
     # a test route
     @app.route('/hello')
     def hello():
