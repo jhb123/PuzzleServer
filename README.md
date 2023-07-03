@@ -37,3 +37,12 @@ Install with
 ```commandline
 pip install flaskr-1.0.0-py3-none-any.whl
 ```
+## Docker
+Build with
+```commandline
+docker build -t puzzle_server .
+```
+start with
+```commandline
+docker run -p 5000:5000 puzzle_server
+```
