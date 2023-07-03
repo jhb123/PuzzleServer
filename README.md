@@ -26,8 +26,10 @@ To generate the configuration for production, create a `config.py` containing a 
 ```commandline
 python -c 'import secrets; print(secrets.token_hex())'
 ```
+## Deployment
+The python app can be built using either the `build` package or it can be deployed with Docker.
 
-## Building
+### Building
 generate the requirements with pipreqs
 ```commandline
 pip install build
@@ -37,7 +39,7 @@ Install with
 ```commandline
 pip install flaskr-1.0.0-py3-none-any.whl
 ```
-## Docker
+### Docker
 Build with
 ```commandline
 docker build -t puzzle_server .
@@ -46,3 +48,9 @@ start with
 ```commandline
 docker run -p 5000:5000 puzzle_server
 ```
+## Development
+Use 
+```commandline
+pre-commit install
+```
+to install pre-commit hooks.
