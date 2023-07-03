@@ -20,9 +20,9 @@ flask --app flaskr init-db
 ```
 Stop the server with `ctrl+C`
 
-Note, credentials must be generated for the password reset to work. Use `generate_credentials.py` to create the nessesary files. 
+Note, credentials must be generated for the password reset to work. Use `generate_credentials.py` to create the nessesary files.
 
-To generate the configuration for production, create a `config.py` containing a `SECRET_KEY` and `JWT_KEY`. Generate these strings with 
+To generate the configuration for production, create a `config.py` containing a `SECRET_KEY` and `JWT_KEY`. Generate these strings with
 ```commandline
 python -c 'import secrets; print(secrets.token_hex())'
 ```
@@ -35,7 +35,7 @@ generate the requirements with pipreqs
 pip install build
 python -m build --wheel
 ```
-Install with 
+Install with
 ```commandline
 pip install flaskr-1.0.0-py3-none-any.whl
 ```
@@ -49,7 +49,7 @@ start with
 docker run -p 5000:5000 puzzle_server
 ```
 ## Development
-Use 
+Use
 ```commandline
 pre-commit install
 ```
