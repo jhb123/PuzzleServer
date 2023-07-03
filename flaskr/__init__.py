@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template
 
 def create_app(test_config=None):
+    print("............................................................................................................")
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     # app.config.from_file("../config.json", load=json.load)
