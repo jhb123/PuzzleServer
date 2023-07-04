@@ -49,6 +49,8 @@ start with
 docker run -p 5000:5000 puzzle_server
 ```
 ## Development
+Autotags on merge into release branch.
+
 Use
 ```commandline
 pre-commit install
