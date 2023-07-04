@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - release
-
+    
 jobs:
-
   tag:
-    needs: release
     runs-on: ubuntu-latest
     strategy:
       matrix:
