@@ -49,10 +49,8 @@ start with
 docker run -p 5000:5000 puzzle_server
 ```
 ## Development
-Autotags on merge into release branch.
-
-Use
+Pre-commit hooks will keep your code tidy. Set them up with:
 ```commandline
 pre-commit install
 ```
-to install pre-commit hooks.
+Tags on merge into release
