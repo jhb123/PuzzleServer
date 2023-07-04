@@ -6,21 +6,8 @@ on:
       - release
 
 jobs:
-  tag:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version:
-        - 12
-    steps:
-    - uses: phish108/autotag-action@v1.1.55
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN}}
-        with-v: "true"
-
 
   release:
-    needs: tag
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -39,3 +26,16 @@ jobs:
           - Second Change
         draft: false
         prerelease: false
+
+  tag:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+        - 12
+    steps:
+    - uses: phish108/autotag-action@v1.1.55
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN}}
+        with-v: "true"
