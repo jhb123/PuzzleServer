@@ -2,6 +2,9 @@ import os
 
 from flask import Flask
 
+from flaskr.cloud.email import EmailManager
+
+email_manager = EmailManager()
 
 def create_app(test_config=None):
     print(".")

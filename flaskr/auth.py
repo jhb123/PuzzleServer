@@ -23,6 +23,7 @@ from googleapiclient.errors import HttpError
 from pyisemail import is_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from flaskr import email_manager
 from flaskr.db import get_db
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -134,13 +135,14 @@ def reset_password():
 
         try:
             db = get_db()
-            user = db.execute(
-                "SELECT username FROM user WHERE email = ?", (email,)
+
+            reset_guid = db.execute(
+                "SELECT resetGuid FROM user WHERE email = ?", (email,)
             ).fetchone()
 
-            email_body = generate_reset_password_email(email)
-            send_reset_password_email(email, email_body)
-            return user["username"], 200
+            email_manager.send_reset_code(email, reset_guid[0])
+
+            return "OK", 200
         except TypeError as e:
             current_app.logger.warning(e)
             return "No such user", 404
@@ -193,57 +195,6 @@ def generate_reset_password_email(email: str) -> str:
     reset_guid = db.execute("SELECT * FROM user WHERE email = ?", (email,)).fetchone()
     reset_email_body = f"Your reset code is:\n{reset_guid['resetGuid']}"
     return reset_email_body
-
-
-def send_reset_password_email(email: str, email_body: str):
-    scopes = ["https://mail.google.com/"]
-
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    path_to_token = current_app.config["GMAIL_TOKEN"]
-    path_to_creds = current_app.config["GMAIL_CREDENTIALS"]
-
-    if os.path.exists(path_to_token):
-        creds = Credentials.from_authorized_user_file(path_to_token, scopes)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(path_to_creds, scopes)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(path_to_token, "w") as token:
-            token.write(creds.to_json())
-
-    try:
-        # Call the Gmail API
-        service = build("gmail", "v1", credentials=creds)
-        # results = service.users().labels().list(userId="me").execute()
-
-        message = EmailMessage()
-        message.set_content(email_body)
-        message["To"] = email
-        message["From"] = "crosswordapp26@gmail.com"
-        message["Subject"] = "Reset your password"
-
-        # encoded message
-        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-        create_message = {"raw": encoded_message}
-        # pylint: disable=E1101
-        send_message = (
-            service.users().messages().send(userId="me", body=create_message).execute()
-        )
-        print(f'Message Id: {send_message["id"]}')
-
-    except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f"An error occurred: {error}")
-
-    return 0
 
 
 def token_required(f):

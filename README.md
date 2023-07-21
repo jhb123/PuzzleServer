@@ -54,3 +54,11 @@ Pre-commit hooks will keep your code tidy. Set them up with:
 pre-commit install
 ```
 Tags on merge into release
+
+## AWS
+While developing, using the AWS plugin for PyCharm may be the best process.
+
+Set up an IAM user with the required permissions. Create an access key for the user. Then follow through the steps as prompted
+```commandline
+aws configure
+```
