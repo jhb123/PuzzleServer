@@ -3,8 +3,10 @@ import os
 import zipfile
 from io import BytesIO
 
+from botocore.exceptions import ClientError
 from flask import Blueprint, current_app, send_file, request
 
+from flaskr import cloud_storage
 from flaskr.auth import token_required
 from flaskr.db import get_db
 
@@ -32,15 +34,30 @@ def search():
         return "No resource found", 404
     current_app.logger.info(puzzle["id"])
 
+
+    try:
+        puzzle_image = cloud_storage.download_image(f"{puzzle_id}.png")
+    except ClientError:
+        return "No resource found", 404
+    try:
+        puzzle_json = cloud_storage.download_image(f"{puzzle_id}.json")
+    except ClientError:
+        return "No resource found", 404
+    
     files = [
-        os.path.join(current_app.config["ICON_UPLOAD_FOLDER"], f"{puzzle_id}.png"),
-        os.path.join(current_app.config["PUZZLE_UPLOAD_FOLDER"], f"{puzzle_id}.json"),
+        (f"{puzzle_id}.png", puzzle_image ),
+        (f"{puzzle_id}.json", puzzle_json),
     ]
+
+    current_app.logger.info(f"got files")
+
 
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, "w") as zf:
         for individualFile in files:
-            zf.write(individualFile, individualFile.split("/")[-1])
+            current_app.logger.info(f"zipping {individualFile[0]}")
+            with individualFile[1] as f:
+                zf.writestr(individualFile[0], f.read())
         zf.writestr("meta_data.json", json.dumps(dict(puzzle)))
     memory_file.seek(0)
     return send_file(
@@ -69,12 +86,11 @@ def upload():
     data = (id, puzzleFile.filename, time_created, last_modified, imageFile.filename)
     db = get_db()
     try:
-        imageFile.save(
-            os.path.join(current_app.config["ICON_UPLOAD_FOLDER"], f"{id}.png")
-        )
-        puzzleFile.save(
-            os.path.join(current_app.config["PUZZLE_UPLOAD_FOLDER"], f"{id}.json")
-        )
+        # TODO: replace with cloud storage.
+
+        cloud_storage.upload_image(imageFile)
+        cloud_storage.upload_puzzle_json(puzzleFile)
+
         db.execute(sql_query, data)
         db.commit()
         current_app.logger.info(f"uploaded {id}")
