@@ -6,7 +6,7 @@ from io import BytesIO
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app, send_file, request
 
-from flaskr import cloud_storage
+from flaskr import cloud_storage, database
 from flaskr.auth import token_required
 from flaskr.db import get_db
 
@@ -22,35 +22,31 @@ def search():
         puzzle_id = request.args.get("id")
 
     # puzzle_id = f'{puzzle_id}'
-
-    db = get_db()
-    current_app.logger.info(f"getting {puzzle_id}")
-
-    puzzle = db.execute(
-        "SELECT * FROM puzzle_table WHERE id = ?", (puzzle_id,)
-    ).fetchone()
-    #
+    try:
+        puzzle = database.get_puzzle_meta_data(puzzle_id)
+    except ClientError:
+        current_app.logger.exception("Database Client error")
+        return "Database Client error", 500
     if puzzle is None:
         return "No resource found", 404
-    current_app.logger.info(puzzle["id"])
 
+    current_app.logger.info(puzzle["id"])
 
     try:
         puzzle_image = cloud_storage.download_image(f"{puzzle_id}.png")
     except ClientError:
-        return "No resource found", 404
+        return f"Could not locate {puzzle_id}.png", 404
     try:
         puzzle_json = cloud_storage.download_image(f"{puzzle_id}.json")
     except ClientError:
-        return "No resource found", 404
-    
+        return f"Could not locate {puzzle_id}.json", 404
+
     files = [
-        (f"{puzzle_id}.png", puzzle_image ),
+        (f"{puzzle_id}.png", puzzle_image),
         (f"{puzzle_id}.json", puzzle_json),
     ]
 
     current_app.logger.info(f"got files")
-
 
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, "w") as zf:
@@ -68,34 +64,23 @@ def search():
 @bp.route("/upload", methods=["POST"])
 @token_required
 def upload():
-    puzzleFile = request.files["puzzle"]
-    imageFile = request.files["image"]
-    id = request.form.get("id")
+    puzzle_file = request.files["puzzle"]
+    image_file = request.files["image"]
+    puzzle_id = request.form.get("id")
     time_created = request.form.get("timeCreated")
     last_modified = request.form.get("lastModified")
 
-    current_app.logger.info(id)
+    current_app.logger.info(puzzle_id)
     current_app.logger.info(time_created)
     current_app.logger.info(last_modified)
 
-    sql_query = """
-        INSERT OR REPLACE INTO puzzle_table
-        (id, puzzle, timeCreated, lastModified,puzzleIcon)
-        VALUES (?, ?, ?, ? ,?)
-    """
-    data = (id, puzzleFile.filename, time_created, last_modified, imageFile.filename)
-    db = get_db()
     try:
-        # TODO: replace with cloud storage.
-
-        cloud_storage.upload_image(imageFile)
-        cloud_storage.upload_puzzle_json(puzzleFile)
-
-        db.execute(sql_query, data)
-        db.commit()
-        current_app.logger.info(f"uploaded {id}")
+        cloud_storage.upload_image(image_file)
+        cloud_storage.upload_puzzle_json(puzzle_file)
+        database.upload_puzzle_meta_data(puzzle_id, puzzle_file.filename, time_created, last_modified, image_file.filename)
+        current_app.logger.info(f"uploaded {puzzle_id}")
         return "OK", 200
 
-    except Exception as e:
-        current_app.logger.error(e)
+    except ClientError:
+        current_app.logger.exception()
         return 500
