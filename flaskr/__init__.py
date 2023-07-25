@@ -2,13 +2,14 @@ import os
 
 from flask import Flask
 
-from flaskr.cloud.database import PuzzleDatabase
+from flaskr.cloud.database import PuzzleDatabase, UserDatabase
 from flaskr.cloud.email import EmailManager
 from flaskr.cloud.storage import CloudStorage
 
 email_manager = EmailManager()
 cloud_storage = CloudStorage()
 database = PuzzleDatabase()
+user_database = UserDatabase()
 
 def create_app(test_config=None):
     print(".")

@@ -1,7 +1,6 @@
 import base64
 import os
 import uuid
-from email.message import EmailMessage
 from functools import wraps
 
 import jwt
@@ -15,16 +14,10 @@ from flask import (
     current_app,
     jsonify,
 )
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from pyisemail import is_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from flaskr import email_manager
-from flaskr.db import get_db
+from flaskr import email_manager, user_database
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -34,13 +27,14 @@ bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 @bp.route("/register", methods=["POST"])
 def register():
+    current_app.logger.info("Beginning registration")
     username = request.json.get("username")
     password = request.json.get("password")
     email = request.json.get("email")
-    db = get_db()
     error = None
 
     valid_email = is_email(email, check_dns=True)
+    current_app.logger.info("Email input fit expected regex rules")
 
     if not username:
         error = "Username is required."
@@ -53,36 +47,20 @@ def register():
         current_app.logger.info(error)
         return error, 400
 
-    else:
-        try:
-            db.execute(
-                "INSERT INTO user"
-                " (username, password, email, resetGuid)"
-                " VALUES (?, ?, ?, ?)",
-                (username, generate_password_hash(password), email, str(uuid.uuid4())),
-            )
-            db.commit()
+    current_app.logger.info("generating user id")
+    user_id = str(uuid.uuid4())
+    current_app.logger.info("hashing password")
+    hashed_password = generate_password_hash(password)
+    current_app.logger.info("generating reset code")
+    reset_code = str(uuid.uuid4())
 
-            token = generate_token(username)
-
-            return jsonify({"token": token}), 201
-        except db.IntegrityError:
-            # figure out how to tell if its username or email which is conflicted.
-            error = "username or email already registered"
-            return error, 409
-
-
-@bp.before_app_request
-def load_logged_in_user():
-    user_id = session.get("user_id")
-
-    if user_id is None:
-        g.user = None
-    else:
-        g.user = (
-            get_db().execute("SELECT * FROM user WHERE id = ?", (user_id,)).fetchone()
-        )
-
+    success = user_database.register_new_user(user_id,  username, hashed_password, email, reset_code)
+    if success:
+        token = generate_token(username)
+        return jsonify({"token": token}), 201
+    else:         # figure out how to tell if its username or email which is conflicted.
+        error = "Issue registering"
+        return error, 409
 
 @bp.route("/logout")
 def logout():
@@ -115,9 +93,20 @@ def login():
     username = request.json.get("username")
     password = request.json.get("password")
 
-    db = get_db()
+    response = user_database.get_id_for_username(username)
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code != 200:
+        return "Error retreiving user data", status_code
 
-    user = db.execute("SELECT * FROM user WHERE username = ?", (username,)).fetchone()
+    user_id = response["Item"]["id"]
+
+    response = user_database.get_user_data(user_id)
+
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code != 200:
+        return "Error retrieving user data", status_code
+
+    user = response["Item"]
 
     if user is not None and check_password_hash(user["password"], password):
         token = generate_token(username)
@@ -133,24 +122,24 @@ def reset_password():
         if email is None:
             return "No email submitted", 400
 
-        try:
-            db = get_db()
+        response = user_database.get_id_for_email(email)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
 
-            reset_guid = db.execute(
-                "SELECT resetGuid FROM user WHERE email = ?", (email,)
-            ).fetchone()
+        user_id = response["Item"]["id"]
 
-            email_manager.send_reset_code(email, reset_guid[0])
+        response = user_database.get_user_data(user_id)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
 
-            return "OK", 200
-        except TypeError as e:
-            current_app.logger.warning(e)
-            return "No such user", 404
-        except db.IntegrityError as e:
-            # figure out how to tell if its username or email which is conflicted.
-            current_app.logger.warning(e)
-            error = "username or email already registered"
-            return error, 404
+        user = response["Item"]
+
+        reset_guid = user["resetGuid"]
+        email_manager.send_reset_code(email, reset_guid)
+
+        return "OK", 200
 
     elif request.method == "POST":
         username = request.json.get("username")
@@ -164,36 +153,40 @@ def reset_password():
         if reset_guid == "" or reset_guid is None:
             return "reset_guid empty", 400
 
-        db = get_db()
+        response = user_database.get_id_for_username(username)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retreiving user data", status_code
 
-        # check valid reset code
-        # user_data = db.execute(
-        #     "SELECT * FROM user WHERE resetGuid = ?", (reset_guid,)
-        # ).fetchone()
+        user_id = response["Item"]["id"]
 
-        # update user with valid reset code
-        cursor = db.cursor()
-        cursor.execute(
-            "UPDATE user SET password = ? WHERE resetGuid is ?",
-            (generate_password_hash(password), reset_guid),
+        response = user_database.get_user_data(user_id)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
+
+        user = response["Item"]
+        if user["resetGuid"] != reset_guid:
+            return "Invalid reset code", 400
+
+        user_database.update_password(
+            user["id"], generate_password_hash(password), str(uuid.uuid4())
         )
-        db.commit()
 
-        new_guid = str(uuid.uuid4())
-        cursor.execute(
-            "UPDATE user SET resetGuid = ? WHERE username is ?", (new_guid, username)
-        )
-        db.commit()
         token = generate_token(username)
 
         return token, 200
 
 
 def generate_reset_password_email(email: str) -> str:
-    db = get_db()
+    response = user_database.get_id_for_email(email)
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code != 200:
+        return "Error retrieving user data", status_code
 
-    reset_guid = db.execute("SELECT * FROM user WHERE email = ?", (email,)).fetchone()
-    reset_email_body = f"Your reset code is:\n{reset_guid['resetGuid']}"
+    reset_guid = response["Item"]["resetGuid"]
+
+    reset_email_body = f"Your reset code is:\n{reset_guid}"
     return reset_email_body
 
 
