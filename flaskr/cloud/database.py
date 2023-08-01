@@ -6,9 +6,10 @@ from mypy_boto3_dynamodb.service_resource import Table
 
 logger = logging.getLogger(__name__)
 
+
 class UserDatabase:
     def __init__(self):
-        self.dynamodb: DynamoDBServiceResource = boto3.resource('dynamodb')
+        self.dynamodb: DynamoDBServiceResource = boto3.resource("dynamodb")
         self.user_table: Table = self.dynamodb.Table("crossword-userdata")
         self.email_table: Table = self.dynamodb.Table("crossword-emails")
         self.username_table: Table = self.dynamodb.Table("crossword-usernames")
@@ -17,13 +18,13 @@ class UserDatabase:
         logger.info("Checking if username is registered")
         response = self.username_table.get_item(Key={"username": username})
         logger.info(f"username is registered: {'Item' in response}")
-        return 'Item' in response
+        return "Item" in response
 
     def _check_email_registered(self, email: str):
         logger.info("Checking if email is registered")
         response = self.email_table.get_item(Key={"email": email})
         logger.info(f"email is registered: {'Item' in response}")
-        return 'Item' in response
+        return "Item" in response
 
     def get_id_for_username(self, username):
         logger.info("getting id for username")
@@ -43,17 +44,19 @@ class UserDatabase:
     def update_password(self, user_id, password, reset_guid):
         logger.info("updating password")
         response = self.user_table.update_item(
-            Key={'id': user_id},
+            Key={"id": user_id},
             UpdateExpression="set password=:p, resetGuid=:g",
-            ExpressionAttributeValues={
-                ':p': password, ':g': reset_guid},
-            ReturnValues="UPDATED_NEW")
+            ExpressionAttributeValues={":p": password, ":g": reset_guid},
+            ReturnValues="UPDATED_NEW",
+        )
 
         return response
 
     def delete_email(self, email):
         self.email_table.delete_item(Key={"email": email})
 
+    # TODO: make this simpler
+    # flake8: noqa: C901
     def register_new_user(self, user_id, username: str, password, email, reset_guid):
         # self.table.
 
@@ -71,23 +74,27 @@ class UserDatabase:
             logger.exception()
             return False
 
-
         if email_already_used or user_already_used:
             return False
 
         try:
-            response = self.username_table.put_item(Item={"username" : username, "id": user_id })
-            match response['ResponseMetadata']['HTTPStatusCode']:
-                case 200 : username_set = True
-                case _ :  username_set = False
+            response = self.username_table.put_item(
+                Item={"username": username, "id": user_id}
+            )
+            match response["ResponseMetadata"]["HTTPStatusCode"]:
+                case 200:
+                    username_set = True
+                case _:
+                    username_set = False
         except ClientError:
             logger.exception()
             return False
 
         try:
             response = self.email_table.put_item(Item={"email": email, "id": user_id})
-            match response['ResponseMetadata']['HTTPStatusCode']:
-                case 200: email_set = True
+            match response["ResponseMetadata"]["HTTPStatusCode"]:
+                case 200:
+                    email_set = True
                 case _:
                     self.username_table.delete_item(Key={"username": username})
                     email_set = False
@@ -102,13 +109,14 @@ class UserDatabase:
         try:
             response = self.user_table.put_item(
                 Item={
-                    'id': user_id,
-                    'username': username,
-                    'password': password,
-                    'email': email,
-                    'resetGuid': reset_guid
-                })
-            match response['ResponseMetadata']['HTTPStatusCode']:
+                    "id": user_id,
+                    "username": username,
+                    "password": password,
+                    "email": email,
+                    "resetGuid": reset_guid,
+                }
+            )
+            match response["ResponseMetadata"]["HTTPStatusCode"]:
                 case 200:
                     return True
                 case _:
@@ -121,29 +129,30 @@ class UserDatabase:
 
 
 class PuzzleDatabase:
-
     def __init__(self):
-        self.dynamodb: DynamoDBServiceResource = boto3.resource('dynamodb')
+        self.dynamodb: DynamoDBServiceResource = boto3.resource("dynamodb")
         self.table: Table = self.dynamodb.Table("crosswords")
 
     def get_puzzle_meta_data(self, puzzle_id: str):
         logger.info(f"Searching database for {puzzle_id}")
         response = self.table.get_item(Key={"id": puzzle_id})
 
-        return response['Item']
+        return response["Item"]
 
     def upload_puzzle_meta_data(
-            self, puzzle_id: str,
-            puzzle_json_fname: str,
-            time_created: str,
-            last_modified: str,
-            puzzle_image_fname
+        self,
+        puzzle_id: str,
+        puzzle_json_fname: str,
+        time_created: str,
+        last_modified: str,
+        puzzle_image_fname,
     ):
         self.table.put_item(
             Item={
-                'id': puzzle_id,
-                'puzzle': puzzle_json_fname,
-                'icon': puzzle_image_fname,
-                'timeCreated': time_created,
-                'lastModified': last_modified
-            })
+                "id": puzzle_id,
+                "puzzle": puzzle_json_fname,
+                "icon": puzzle_image_fname,
+                "timeCreated": time_created,
+                "lastModified": last_modified,
+            }
+        )

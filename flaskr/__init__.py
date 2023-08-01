@@ -11,6 +11,7 @@ cloud_storage = CloudStorage()
 database = PuzzleDatabase()
 user_database = UserDatabase()
 
+
 def create_app(test_config=None):
     print(".")
     # create and configure the app
@@ -22,10 +23,6 @@ def create_app(test_config=None):
         JWT_KEY="iLoveCats",
         DATABASE=os.path.join(app.instance_path, "flaskr.sqlite"),
     )
-
-    app_dir_path = os.path.dirname(os.path.realpath(__file__))
-
-    secret_configs = "/".join(app_dir_path.split("/")[0:-1])
 
     if test_config is None:
         # load the instance config, if it exists, when not testing

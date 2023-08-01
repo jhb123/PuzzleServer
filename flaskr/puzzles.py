@@ -1,5 +1,4 @@
 import json
-import os
 import zipfile
 from io import BytesIO
 
@@ -8,11 +7,13 @@ from flask import Blueprint, current_app, send_file, request
 
 from flaskr import cloud_storage, database
 from flaskr.auth import token_required
-from flaskr.db import get_db
 
 bp = Blueprint("puzzles", __name__, url_prefix="/puzzles")
 
+# TODO: simplify search
 
+
+# flake8: noqa: C901
 @bp.route("/search", methods=["GET", "POST"])
 @token_required
 def search():
@@ -46,7 +47,7 @@ def search():
         (f"{puzzle_id}.json", puzzle_json),
     ]
 
-    current_app.logger.info(f"got files")
+    current_app.logger.info("got files")
 
     memory_file = BytesIO()
     with zipfile.ZipFile(memory_file, "w") as zf:
@@ -77,7 +78,13 @@ def upload():
     try:
         cloud_storage.upload_image(image_file)
         cloud_storage.upload_puzzle_json(puzzle_file)
-        database.upload_puzzle_meta_data(puzzle_id, puzzle_file.filename, time_created, last_modified, image_file.filename)
+        database.upload_puzzle_meta_data(
+            puzzle_id,
+            puzzle_file.filename,
+            time_created,
+            last_modified,
+            image_file.filename,
+        )
         current_app.logger.info(f"uploaded {puzzle_id}")
         return "OK", 200
 

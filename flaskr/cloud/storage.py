@@ -3,29 +3,25 @@ import io
 import boto3
 import logging
 
-from botocore.client import BaseClient
 from botocore.exceptions import ClientError
+from mypy_boto3_s3 import S3Client
 from werkzeug.datastructures import FileStorage
 
 logger = logging.getLogger(__name__)
 
 
 class CloudStorage:
-
     def __init__(self):
-
-        self.client = boto3.client('s3')
+        self.client: S3Client = boto3.client("s3")
         self.bucket_name = "jhb-crossword"
 
     def _upload_file(self, file: FileStorage) -> bool:
-
         logger.info(f"uploading {file.filename}")
         try:
-
             memory_file = io.BytesIO(file.read())
             logger.info(f"created file in memory: {file.name}")
 
-            response = self.client.upload_fileobj(memory_file, self.bucket_name, file.filename)
+            self.client.upload_fileobj(memory_file, self.bucket_name, file.filename)
 
         except ClientError as e:
             logger.error(e)
@@ -38,7 +34,7 @@ class CloudStorage:
         try:
             # with memory_file as f:
             self.client.download_fileobj(self.bucket_name, file_name, memory_file)
-                # memory_file.seek(0)
+            # memory_file.seek(0)
         except ClientError as e:
             logger.error(e)
             raise
@@ -63,7 +59,6 @@ class CloudStorage:
     def download_puzzle_json(self, file_name: str) -> io.BytesIO:
         # ditto
         return self._download_file(file_name)
-
 
     # def upload_puzzle_json(file_name, bucket, object_name=None):
     #     """Upload a file to an S3 bucket

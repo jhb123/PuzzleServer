@@ -5,12 +5,13 @@ class EmailStrings:
     sender_address = "crosswordapp26@gmail.com"
 
     reset_subject = "Reset Code for CrosswordScan"
-    reset_body = "Your reset code for CrosswordScan is:\n{0}\n" \
-                 "If you didn't request this, you may ignore this email."
+    reset_body = (
+        "Your reset code for CrosswordScan is:\n{0}\n"
+        "If you didn't request this, you may ignore this email."
+    )
 
 
 class EmailManager:
-
     def __init__(self):
         self.ses_client = boto3.client("ses", region_name="eu-north-1")
         self.CHARSET = "UTF-8"
@@ -32,7 +33,5 @@ class EmailManager:
         source = EmailStrings.sender_address
 
         self.ses_client.send_email(
-            Destination=destination,
-            Message=message,
-            Source=source
+            Destination=destination, Message=message, Source=source
         )

@@ -1,12 +1,9 @@
-import base64
-import os
 import uuid
 from functools import wraps
 
 import jwt
 from flask import (
     Blueprint,
-    g,
     redirect,
     request,
     session,
@@ -54,13 +51,16 @@ def register():
     current_app.logger.info("generating reset code")
     reset_code = str(uuid.uuid4())
 
-    success = user_database.register_new_user(user_id,  username, hashed_password, email, reset_code)
+    success = user_database.register_new_user(
+        user_id, username, hashed_password, email, reset_code
+    )
     if success:
         token = generate_token(username)
         return jsonify({"token": token}), 201
-    else:         # figure out how to tell if its username or email which is conflicted.
+    else:  # figure out how to tell if its username or email which is conflicted.
         error = "Issue registering"
         return error, 409
+
 
 @bp.route("/logout")
 def logout():
@@ -115,6 +115,8 @@ def login():
         return jsonify({"error": "Invalid credentials"}), 401
 
 
+# TODO: make this simpler
+# flake8: noqa: C901
 @bp.route("/resetPassword", methods=["GET", "POST"])
 def reset_password():
     if request.method == "GET":
