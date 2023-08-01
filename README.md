@@ -59,7 +59,11 @@ To run the tests in this package, use
 pip install -e '.[test]'
 ```
 
-Pre-commit hooks will keep your code tidy. To run them manually, use 
+Pre-commit hooks will keep your code tidy. Set them up with
+```commandline
+pre-commit install
+```
+To run them manually, use
 ```commandline
 pre-commit run --all-files
 ```
