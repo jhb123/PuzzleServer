@@ -49,10 +49,21 @@ start with
 docker run -p 5000:5000 puzzle_server
 ```
 ## Development
-Pre-commit hooks will keep your code tidy. Set them up with:
+To develop this package, use
 ```commandline
-pre-commit install
+pip install -e .
+pip install -e '.[dev]'
 ```
+To run the tests in this package, use
+```commandline
+pip install -e '.[test]'
+```
+
+Pre-commit hooks will keep your code tidy. To run them manually, use 
+```commandline
+pre-commit run --all-files
+```
+
 Tags on merge into release
 
 ## AWS
