@@ -5,7 +5,6 @@ from io import BytesIO
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app, send_file, request
 
-from flaskr import cloud_storage, database
 from flaskr.auth import token_required
 
 bp = Blueprint("puzzles", __name__, url_prefix="/puzzles")
@@ -17,6 +16,8 @@ bp = Blueprint("puzzles", __name__, url_prefix="/puzzles")
 @bp.route("/search", methods=["GET", "POST"])
 @token_required
 def search():
+    puzzle_id = None
+
     if request.method == "POST":
         puzzle_id = request.json.get("id")
     elif request.method == "GET":
@@ -24,7 +25,7 @@ def search():
 
     # puzzle_id = f'{puzzle_id}'
     try:
-        puzzle = database.get_puzzle_meta_data(puzzle_id)
+        puzzle = current_app.puzzle_database.get_puzzle_meta_data(puzzle_id)
     except ClientError:
         current_app.logger.exception("Database Client error")
         return "Database Client error", 500
@@ -34,11 +35,11 @@ def search():
     current_app.logger.info(puzzle["id"])
 
     try:
-        puzzle_image = cloud_storage.download_image(f"{puzzle_id}.png")
+        puzzle_image = current_app.cloud_storage.download_image(f"{puzzle_id}.png")
     except ClientError:
         return f"Could not locate {puzzle_id}.png", 404
     try:
-        puzzle_json = cloud_storage.download_image(f"{puzzle_id}.json")
+        puzzle_json = current_app.cloud_storage.download_image(f"{puzzle_id}.json")
     except ClientError:
         return f"Could not locate {puzzle_id}.json", 404
 
@@ -76,9 +77,9 @@ def upload():
     current_app.logger.info(last_modified)
 
     try:
-        cloud_storage.upload_image(image_file)
-        cloud_storage.upload_puzzle_json(puzzle_file)
-        database.upload_puzzle_meta_data(
+        current_app.cloud_storage.upload_image(image_file)
+        current_app.cloud_storage.upload_puzzle_json(puzzle_file)
+        current_app.puzzle_database.upload_puzzle_meta_data(
             puzzle_id,
             puzzle_file.filename,
             time_created,

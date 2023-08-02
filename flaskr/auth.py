@@ -14,8 +14,6 @@ from flask import (
 from pyisemail import is_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from flaskr import email_manager, user_database
-
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 # Secret key used to sign and verify the JWTs
@@ -51,7 +49,7 @@ def register():
     current_app.logger.info("generating reset code")
     reset_code = str(uuid.uuid4())
 
-    success = user_database.register_new_user(
+    success = current_app.user_database.register_new_user(
         user_id, username, hashed_password, email, reset_code
     )
     if success:
@@ -93,14 +91,14 @@ def login():
     username = request.json.get("username")
     password = request.json.get("password")
 
-    response = user_database.get_id_for_username(username)
+    response = current_app.user_database.get_id_for_username(username)
     status_code = response["ResponseMetadata"]["HTTPStatusCode"]
     if status_code != 200:
         return "Error retreiving user data", status_code
 
     user_id = response["Item"]["id"]
 
-    response = user_database.get_user_data(user_id)
+    response = current_app.user_database.get_user_data(user_id)
 
     status_code = response["ResponseMetadata"]["HTTPStatusCode"]
     if status_code != 200:
@@ -124,14 +122,14 @@ def reset_password():
         if email is None:
             return "No email submitted", 400
 
-        response = user_database.get_id_for_email(email)
+        response = current_app.user_database.get_id_for_email(email)
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retrieving user data", status_code
 
         user_id = response["Item"]["id"]
 
-        response = user_database.get_user_data(user_id)
+        response = current_app.user_database.get_user_data(user_id)
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retrieving user data", status_code
@@ -139,7 +137,7 @@ def reset_password():
         user = response["Item"]
 
         reset_guid = user["resetGuid"]
-        email_manager.send_reset_code(email, reset_guid)
+        current_app.email_manager.send_reset_code(email, reset_guid)
 
         return "OK", 200
 
@@ -155,14 +153,14 @@ def reset_password():
         if reset_guid == "" or reset_guid is None:
             return "reset_guid empty", 400
 
-        response = user_database.get_id_for_username(username)
+        response = current_app.user_database.get_id_for_username(username)
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retreiving user data", status_code
 
         user_id = response["Item"]["id"]
 
-        response = user_database.get_user_data(user_id)
+        response = current_app.user_database.get_user_data(user_id)
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retrieving user data", status_code
@@ -171,7 +169,7 @@ def reset_password():
         if user["resetGuid"] != reset_guid:
             return "Invalid reset code", 400
 
-        user_database.update_password(
+        current_app.user_database.update_password(
             user["id"], generate_password_hash(password), str(uuid.uuid4())
         )
 
@@ -181,7 +179,7 @@ def reset_password():
 
 
 def generate_reset_password_email(email: str) -> str:
-    response = user_database.get_id_for_email(email)
+    response = current_app.user_database.get_id_for_email(email)
     status_code = response["ResponseMetadata"]["HTTPStatusCode"]
     if status_code != 200:
         return "Error retrieving user data", status_code
