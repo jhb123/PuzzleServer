@@ -17,6 +17,8 @@ class EmailManager:
         self.CHARSET = "UTF-8"
 
     def send_reset_code(self, recipient_email, code):
+        if code == "" or code is None:
+            raise ValueError("code must not be None or an empty string")
         destination = {"ToAddresses": [recipient_email]}
         message = {
             "Body": {
