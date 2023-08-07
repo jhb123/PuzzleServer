@@ -1,15 +1,27 @@
 import pytest
-from flaskr import create_app
+
+from moto import mock_ses
+
+from flaskr import EmailManager, CloudStorage, PuzzleDatabase, UserDatabase, create_app
 
 
+@mock_ses
 @pytest.fixture()
 def app():
-    app = create_app()
-    app.config.update({
-        "TESTING": True,
-    })
+    # We need to create the bucket since this is all in Moto's 'virtual' AWS account
+    # conn.create_bucket(Bucket="jhb-crossword")
 
-    # other setup can go here
+    email_manager = EmailManager()
+    cloud_storage = CloudStorage()
+    database = PuzzleDatabase()
+    user_database = UserDatabase()
+
+    app = create_app(email_manager, cloud_storage, database, user_database)
+    app.config.update(
+        {
+            "TESTING": True,
+        }
+    )
 
     yield app
 
