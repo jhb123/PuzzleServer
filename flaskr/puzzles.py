@@ -39,7 +39,9 @@ def search():
     except ClientError:
         return f"Could not locate {puzzle_id}.png", 404
     try:
-        puzzle_json = current_app.cloud_storage.download_image(f"{puzzle_id}.json")
+        puzzle_json = current_app.cloud_storage.download_puzzle_json(
+            f"{puzzle_id}.json"
+        )
     except ClientError:
         return f"Could not locate {puzzle_id}.json", 404
 
@@ -77,6 +79,7 @@ def upload():
     current_app.logger.info(last_modified)
 
     try:
+        print(f"image file {image_file.filename}")
         current_app.cloud_storage.upload_image(image_file)
         current_app.cloud_storage.upload_puzzle_json(puzzle_file)
         current_app.puzzle_database.upload_puzzle_meta_data(

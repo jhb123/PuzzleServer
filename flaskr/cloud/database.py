@@ -4,6 +4,8 @@ from botocore.exceptions import ClientError
 from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 
+from flaskr.file_validation import get_file_extension
+
 logger = logging.getLogger(__name__)
 
 
@@ -145,8 +147,18 @@ class PuzzleDatabase:
         puzzle_json_fname: str,
         time_created: str,
         last_modified: str,
-        puzzle_image_fname,
+        puzzle_image_fname: str,
     ):
+        if not isinstance(puzzle_id, str):
+            raise TypeError("puzzle_id must be a string")
+        if not isinstance(time_created, str):
+            raise TypeError("time_created must be a string")
+        if not isinstance(last_modified, str):
+            raise TypeError("last_modified must be a string")
+        if get_file_extension(puzzle_json_fname) != "json":
+            raise ValueError("puzzle must be a JSON file")
+        if get_file_extension(puzzle_image_fname) != "png":
+            raise ValueError("puzzle icon must be a PNG file")
         self.table.put_item(
             Item={
                 "id": puzzle_id,
