@@ -54,11 +54,6 @@ To develop this package, use
 pip install -e .
 pip install -e '.[dev]'
 ```
-To run the tests in this package, use
-```commandline
-pip install -e '.[test]'
-```
-
 Pre-commit hooks will keep your code tidy. Set them up with
 ```commandline
 pre-commit install
@@ -67,8 +62,23 @@ To run them manually, use
 ```commandline
 pre-commit run --all-files
 ```
-
 Tags on merge into release
+### testing
+To run the tests in this package, install with
+```commandline
+pip install -e '.[test]'
+```
+Run with e.g.
+```commandline
+pytest test/unit_tests/test_storage.py
+coverage run -m pytest
+```
+View the coverage with
+```commandline
+ coverage html --omit="*/test*" -d test/coverage
+
+```
+
 
 ## AWS
 While developing, using the AWS plugin for PyCharm may be the best process.
