@@ -1,72 +1,7 @@
-import os
-
-import boto3
 import pytest
-from moto import mock_dynamodb
-from moto.dynamodb.models import dynamodb_backends, DynamoDBBackend
-from moto.core import DEFAULT_ACCOUNT_ID
+from moto.dynamodb.models import DynamoDBBackend
 
 from flaskr import PuzzleDatabase
-
-
-# @pytest.fixture
-# def aws_credentials():
-#     """Mocked AWS Credentials for moto."""
-#     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-#     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-#     os.environ["AWS_SECURITY_TOKEN"] = "testing"
-#     os.environ["AWS_SESSION_TOKEN"] = "testing"
-
-
-@pytest.fixture
-def db_backend(aws_credentials):
-    db_backend: DynamoDBBackend = dynamodb_backends[DEFAULT_ACCOUNT_ID]["eu-north-1"]
-    yield db_backend
-
-
-@pytest.fixture
-def aws_credentials():
-    """Mocked AWS Credentials for moto."""
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-
-
-@pytest.fixture
-def fake_crossword_db(aws_credentials):
-    with mock_dynamodb():
-        table_params = {
-            "TableName": "crosswords",
-            "KeySchema": [
-                {"AttributeName": "id", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "id", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-
-        conn = boto3.client("dynamodb")
-        conn.create_table(**table_params)
-
-        yield PuzzleDatabase()
-
-
-@pytest.fixture
-def puzzle_test_data():
-    data = {
-        "id": {"S": "test"},
-        "puzzle": {"S": "file.json"},
-        "timeCreated": {"S": "1/1/1 1:11 UTC+1"},
-        "lastModified": {"S": "2/2/2 2:22 UTC+2"},
-        "icon": {"S": "file.png"},
-    }
-
-    return data
 
 
 class TestPuzzleDatabase:

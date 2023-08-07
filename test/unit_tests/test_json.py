@@ -1,16 +1,8 @@
 import json
-from pathlib import Path
 
 import pytest
 
 from flaskr.file_validation import check_puzzle_json
-
-
-@pytest.fixture
-def test_data_dir():
-    test_dir = Path(__file__).parent.parent
-    test_data_directory = test_dir.joinpath("test_data")
-    yield test_data_directory
 
 
 @pytest.mark.parametrize("test_input", ["test.json", "valid.json"])
