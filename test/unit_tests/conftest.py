@@ -27,11 +27,9 @@ def app(
     database = fake_crossword_db
     user_database = fake_crossword_user_databases
 
-    app = create_app(email_manager, cloud_storage, database, user_database)
-    app.config.update(
-        {
-            "TESTING": True,
-        }
+    config = {"TESTING": True, "SECRET_KEY": "dev", "JWT_KEY": "iLoveCats"}
+    app = create_app(
+        email_manager, cloud_storage, database, user_database, test_config=config
     )
 
     yield app

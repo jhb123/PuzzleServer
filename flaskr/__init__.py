@@ -71,16 +71,18 @@ def create_app(
         # load the instance config, if it exists, when not testing
         secrets = Secrets()
         app.logger.info("Loading config from dynamo")
-        app.config.from_mapping(
-            {
-                "TESTING": False,
-                "SECRET_KEY": secrets.get_secret("SECRET_KEY"),
-                "JWT_KEY": secrets.get_secret("JWT_KEY"),
-            }
+        app.config.update(
+            TESTING=False,
+            SECRET_KEY=secrets.get_secret("SECRET_KEY"),
+            JWT_KEY=secrets.get_secret("JWT_KEY"),
         )
     else:
         # load the test config if passed in
-        app.config.from_mapping(test_config)
+        app.config.update(
+            TESTING=True,
+            SECRET_KEY=test_config["SECRET_KEY"],
+            JWT_KEY=test_config["JWT_KEY"],
+        )
 
     # ensure the instance folder exists
     try:

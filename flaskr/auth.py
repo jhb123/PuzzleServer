@@ -26,17 +26,23 @@ def register():
     username = request.json.get("username")
     password = request.json.get("password")
     email = request.json.get("email")
+
     error = None
 
-    valid_email = is_email(email, check_dns=True)
-    current_app.logger.info("Email input fit expected regex rules")
+    valid_email = False
+
+    try:
+        valid_email = is_email(email, check_dns=True)
+        current_app.logger.info("Email input fit expected regex rules")
+    except TypeError:
+        error = "Email was not a string"
 
     if not username:
         error = "Username is required."
     elif not password:
         error = "Password is required."
     elif not valid_email:
-        error = "email is not valid."
+        error = "Email is not valid."
 
     if error is not None:
         current_app.logger.info(error)
@@ -58,12 +64,6 @@ def register():
     else:  # figure out how to tell if its username or email which is conflicted.
         error = "Issue registering"
         return error, 409
-
-
-@bp.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
 
 
 # Generate a token for a given user
