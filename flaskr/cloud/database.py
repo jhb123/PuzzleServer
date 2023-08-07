@@ -71,7 +71,7 @@ class UserDatabase:
             return False
 
         try:
-            user_already_used = self._check_username_registered(email)
+            user_already_used = self._check_username_registered(username)
         except ClientError:
             logger.exception()
             return False

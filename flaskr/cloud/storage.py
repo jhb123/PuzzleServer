@@ -32,6 +32,7 @@ class CloudStorage:
 
         except ClientError as e:
             logger.error(e)
+            raise
 
     def _download_file(self, file_name: str) -> io.BytesIO:
         logger.info(f"downloading {file_name}")

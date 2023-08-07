@@ -6,6 +6,7 @@ from flaskr.file_validation import get_file_extension
 @pytest.mark.parametrize(
     "test_input",
     [
+        None,
         "file",
         "png",
         ".png",

@@ -38,6 +38,9 @@ def check_puzzle_json(input_json: dict) -> bool:
 
 
 def get_file_extension(file_name: str):
+    if file_name is None:
+        raise ValueError("Not a file")
+
     file_name_split = file_name.split(".")
     if (
         len(file_name_split) != 2

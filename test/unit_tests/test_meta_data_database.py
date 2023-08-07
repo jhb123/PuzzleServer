@@ -57,19 +57,6 @@ def fake_crossword_db(aws_credentials):
 
 
 @pytest.fixture
-def user_test_data():
-    data = {
-        "id": {"S": "test"},
-        "username": {"S": "uname"},
-        "password": {"S": "pword"},
-        "email": {"S": "email@addr.com"},
-        "resetGuid": {"S": "123"},
-    }
-
-    return data
-
-
-@pytest.fixture
 def puzzle_test_data():
     data = {
         "id": {"S": "test"},
