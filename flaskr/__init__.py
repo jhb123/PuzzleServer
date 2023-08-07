@@ -4,6 +4,7 @@ from flask import Flask
 
 from flaskr.cloud.database import PuzzleDatabase, UserDatabase
 from flaskr.cloud.email import EmailManager
+from flaskr.cloud.secrets import Secrets
 from flaskr.cloud.storage import CloudStorage
 
 
@@ -65,17 +66,18 @@ def create_app(
         import_name=__name__,
         instance_relative_config=True,
     )
-    # app.config.from_file("../config.json", load=json.load)
-
-    app.config.from_mapping(
-        SECRET_KEY="dev",
-        JWT_KEY="iLoveCats",
-    )
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
-        app.logger.info("Loading config from pyfile")
-        app.config.from_pyfile("config.py", silent=True)
+        secrets = Secrets()
+        app.logger.info("Loading config from dynamo")
+        app.config.from_mapping(
+            {
+                "TESTING": False,
+                "SECRET_KEY": secrets.get_secret("SECRET_KEY"),
+                "JWT_KEY": secrets.get_secret("JWT_KEY"),
+            }
+        )
     else:
         # load the test config if passed in
         app.config.from_mapping(test_config)
