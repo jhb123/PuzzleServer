@@ -207,7 +207,7 @@ def fake_crossword_user_databases(
     user_email_table_params,
 ):
     with mock_dynamodb():
-        conn = boto3.client("dynamodb")
+        conn = boto3.client("dynamodb", region_name="eu-north-1")
         conn.create_table(**user_data_table_params)
         conn.create_table(**user_email_table_params)
         conn.create_table(**user_name_table_params)
@@ -264,7 +264,7 @@ def fake_all_services(
     user_name_table_params,
 ) -> Tuple[UserDatabase, PuzzleDatabase, EmailManager, CloudStorage]:
     with mock_all():
-        conn = boto3.client("dynamodb")
+        conn = boto3.client("dynamodb", region_name="eu-north-1")
         conn.create_table(**user_data_table_params)
         conn.create_table(**user_email_table_params)
         conn.create_table(**user_name_table_params)
