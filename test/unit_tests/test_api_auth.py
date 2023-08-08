@@ -7,26 +7,24 @@ from werkzeug.security import check_password_hash
 from flaskr.auth import verify_token
 
 
-def test_register_new_user(flask_client):
+def test_register_new_user(flask_client, new_user):
     response = flask_client.post(
         "/auth/register",
-        json={"username": "uname", "password": "pword", "email": "email@addr.com"},
+        json=new_user,
     )
     assert response.status == "201 CREATED"
 
 
-def test_register_duplicate_users_response(flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "email@addr.com"}
-    flask_client.post("/auth/register", json=user_json)
-    response = flask_client.post("/auth/register", json=user_json)
+def test_register_duplicate_users_response(flask_client, new_user):
+    flask_client.post("/auth/register", json=new_user)
+    response = flask_client.post("/auth/register", json=new_user)
 
     assert response.status == "409 CONFLICT"
 
 
-def test_register_duplicate_users_text(flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "email@addr.com"}
-    flask_client.post("/auth/register", json=user_json)
-    response = flask_client.post("/auth/register", json=user_json)
+def test_register_duplicate_users_text(flask_client, new_user):
+    flask_client.post("/auth/register", json=new_user)
+    response = flask_client.post("/auth/register", json=new_user)
 
     assert response.text == "Issue registering"
 
@@ -126,18 +124,16 @@ def test_register_invalid_login_status(flask_client):
     assert response.status == "401 UNAUTHORIZED"
 
 
-def test_password_is_hashed(flask_client, fake_crossword_user_databases):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
+def test_password_is_hashed(flask_client, fake_crossword_user_databases, new_user):
+    flask_client.post("/auth/register", json=new_user)
     user_id = fake_crossword_user_databases.get_id_for_username("uname")
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     assert user_data["Item"]["password"] != "pword"
     assert check_password_hash(user_data["Item"]["password"], "pword")
 
 
-def test_valid_login_message(flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
+def test_valid_login_message(flask_client, new_user):
+    flask_client.post("/auth/register", json=new_user)
 
     user_json = {
         "username": "uname",
@@ -152,18 +148,17 @@ def test_valid_login_message(flask_client):
     assert decoded
 
 
-def test_verify_repeat_login(flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    response = flask_client.post("/auth/register", json=user_json)
+def test_verify_repeat_login(flask_client, new_user):
+    # user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
+    response = flask_client.post("/auth/register", json=new_user)
     token_1 = json.loads(response.text)["token"]
-    response = flask_client.post("/auth/login", json=user_json)
+    response = flask_client.post("/auth/login", json=new_user)
     token_2 = json.loads(response.text)["token"]
     assert token_1 == token_2
 
 
-def test_verify_token(app, flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    response = flask_client.post("/auth/register", json=user_json)
+def test_verify_token(app, flask_client, new_user):
+    response = flask_client.post("/auth/register", json=new_user)
     token = json.loads(response.text)["token"]
     with app.app_context():
         assert verify_token(token)
@@ -174,21 +169,19 @@ def test_verify_bad_token(app, flask_client):
         assert not verify_token("1")
 
 
-def test_get_reset_password_status_happy_path(flask_client):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
+def test_get_reset_password_status_happy_path(flask_client, new_user, delete_emails):
+    flask_client.post("/auth/register", json=new_user)
     response = flask_client.get(
-        "/auth/resetPassword", query_string={"email": "test@email.com"}
+        "/auth/resetPassword", query_string={"email": "email@addr.com"}
     )
     assert response.status == "200 OK"
 
 
 def test_get_reset_password_email_received(
-    flask_client, messages, fake_crossword_user_databases
+    flask_client, messages, fake_crossword_user_databases, new_user, delete_emails
 ):
-    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
+    flask_client.post("/auth/register", json=new_user)
+    flask_client.get("/auth/resetPassword", query_string={"email": "email@addr.com"})
     user_id = fake_crossword_user_databases.get_id_for_username("uname")
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     assert user_data["Item"]["resetGuid"] in messages[0].body
@@ -210,7 +203,9 @@ def test_get_reset_password_bad_email(flask_client, test_input):
 @pytest.mark.parametrize(
     "test_input", [None, "", "a.b.c", "a@b", "@gmail.com", "www.a@com"]
 )
-def test_get_reset_password_bad_email_no_email_sent(flask_client, messages, test_input):
+def test_get_reset_password_bad_email_no_email_sent(
+    flask_client, messages, test_input, delete_emails
+):
     # check no emails are sent when a bad email is used
     user_json = {"username": "uname", "password": "pword", "email": test_input}
     flask_client.post("/auth/register", json=user_json)
@@ -265,7 +260,7 @@ def test_post_reset_password_status_new_code(
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     old_reset_code = user_data["Item"]["resetGuid"]
 
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
+    # flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
     flask_client.post(
         "/auth/resetPassword",
         json={
@@ -282,23 +277,16 @@ def test_post_reset_password_status_new_code(
 
 
 def test_post_reset_password_status_new_password(
-    flask_client, fake_crossword_user_databases
+    flask_client, fake_crossword_user_databases, new_user
 ):
-    old_password = "old_password"
     expected_new_password = "new_password"
-
-    user_json = {
-        "username": "uname",
-        "password": old_password,
-        "email": "test@email.com",
-    }
-    flask_client.post("/auth/register", json=user_json)
+    flask_client.post("/auth/register", json=new_user)
 
     user_id = fake_crossword_user_databases.get_id_for_username("uname")
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     old_reset_code = user_data["Item"]["resetGuid"]
 
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
+    # flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
     flask_client.post(
         "/auth/resetPassword",
         json={
@@ -316,16 +304,13 @@ def test_post_reset_password_status_new_password(
 
 @pytest.mark.parametrize("test_input", [None, "", "test@email.com"])
 def test_post_reset_password_invalid_username(
-    flask_client, fake_crossword_user_databases, test_input
+    flask_client, fake_crossword_user_databases, test_input, new_user
 ):
-    user_json = {"username": "uname", "password": "password", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
+    flask_client.post("/auth/register", json=new_user)
 
     user_id = fake_crossword_user_databases.get_id_for_username("uname")
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     old_reset_code = user_data["Item"]["resetGuid"]
-
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
 
     response = flask_client.post(
         "/auth/resetPassword",
@@ -341,16 +326,13 @@ def test_post_reset_password_invalid_username(
 
 @pytest.mark.parametrize("test_input", [None, ""])
 def test_post_reset_password_invalid_new_password(
-    flask_client, fake_crossword_user_databases, test_input
+    flask_client, fake_crossword_user_databases, test_input, new_user
 ):
-    user_json = {"username": "uname", "password": "password", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
+    flask_client.post("/auth/register", json=new_user)
 
     user_id = fake_crossword_user_databases.get_id_for_username("uname")
     user_data = fake_crossword_user_databases.get_user_data(user_id["Item"]["id"])
     old_reset_code = user_data["Item"]["resetGuid"]
-
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
 
     response = flask_client.post(
         "/auth/resetPassword",
@@ -362,11 +344,9 @@ def test_post_reset_password_invalid_new_password(
 
 @pytest.mark.parametrize("test_input", [None, "", "not a valid reset code"])
 def test_post_reset_invalid_reset_code(
-    flask_client, fake_crossword_user_databases, test_input
+    flask_client, fake_crossword_user_databases, test_input, new_user
 ):
-    user_json = {"username": "uname", "password": "password", "email": "test@email.com"}
-    flask_client.post("/auth/register", json=user_json)
-    flask_client.get("/auth/resetPassword", query_string={"email": "test@email.com"})
+    flask_client.post("/auth/register", json=new_user)
 
     response = flask_client.post(
         "/auth/resetPassword",

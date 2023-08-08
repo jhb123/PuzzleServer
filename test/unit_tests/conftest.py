@@ -5,7 +5,7 @@ import logging
 
 import boto3
 import pytest
-from moto import mock_ses, mock_dynamodb, mock_s3
+from moto import mock_ses, mock_dynamodb, mock_s3, mock_all
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.s3 import s3_backends
@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture()
-def app(fake_all_databases, fake_email_manager, fake_storage):
+def app(fake_all_services):
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     # conn.create_bucket(Bucket="jhb-crossword")
 
-    email_manager = fake_email_manager
-    cloud_storage = fake_storage
-    user_database = fake_all_databases[0]
-    database = fake_all_databases[1]
+    user_database: UserDatabase = fake_all_services[0]
+    database: PuzzleDatabase = fake_all_services[1]
+    email_manager: EmailManager = fake_all_services[2]
+    cloud_storage: CloudStorage = fake_all_services[3]
 
     config = {"TESTING": True, "SECRET_KEY": "dev", "JWT_KEY": "iLoveCats"}
     app = create_app(
@@ -52,7 +52,7 @@ def runner(app):
     return app.test_cli_runner()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
@@ -89,46 +89,83 @@ def db_backend(aws_credentials):
     yield db_backend
 
 
-# @pytest.fixture
-# def crossword_table_params():
-#     # For some reason which I cannot fathom, the
-#     # fake_crossword_db doesn't work when used with
-#     # the flask client. This fixture is just provided
-#     # to avoid this issue...
-#     table_params = {
-#         "TableName": "crosswords",
-#         "KeySchema": [
-#             {"AttributeName": "id", "KeyType": "HASH"},
-#         ],
-#         "AttributeDefinitions": [
-#             {"AttributeName": "id", "AttributeType": "S"},
-#         ],
-#         "ProvisionedThroughput": {
-#             "ReadCapacityUnits": 10,
-#             "WriteCapacityUnits": 10,
-#         },
-#     }
-#     yield table_params
+@pytest.fixture(scope="module")
+def crossword_table_params():
+    table = {
+        "TableName": "crosswords",
+        "KeySchema": [
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10,
+        },
+    }
+    yield table
+
+
+@pytest.fixture(scope="module")
+def user_data_table_params():
+    table = {
+        "TableName": "crossword-userdata",
+        "KeySchema": [
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10,
+        },
+    }
+    yield table
+
+
+@pytest.fixture(scope="module")
+def user_name_table_params():
+    table = {
+        "TableName": "crossword-usernames",
+        "KeySchema": [
+            {"AttributeName": "username", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "username", "AttributeType": "S"},
+        ],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10,
+        },
+    }
+    yield table
+
+
+@pytest.fixture(scope="module")
+def user_email_table_params():
+    table = {
+        "TableName": "crossword-emails",
+        "KeySchema": [
+            {"AttributeName": "email", "KeyType": "HASH"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "email", "AttributeType": "S"},
+        ],
+        "ProvisionedThroughput": {
+            "ReadCapacityUnits": 10,
+            "WriteCapacityUnits": 10,
+        },
+    }
+    yield table
 
 
 @pytest.fixture
-def fake_crossword_db(aws_credentials):
+def fake_crossword_db(aws_credentials, crossword_table_params):
     with mock_dynamodb():
-        table_params = {
-            "TableName": "crosswords",
-            "KeySchema": [
-                {"AttributeName": "id", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "id", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
         conn = boto3.client("dynamodb")
-        conn.create_table(**table_params)
+        conn.create_table(**crossword_table_params)
 
         yield PuzzleDatabase()
 
@@ -168,48 +205,13 @@ def user_db_backend(aws_credentials):
 
 
 @pytest.fixture
-def fake_crossword_user_databases(aws_credentials):
+def fake_crossword_user_databases(
+    aws_credentials,
+    user_data_table_params,
+    user_name_table_params,
+    user_email_table_params,
+):
     with mock_dynamodb():
-        user_data_table_params = {
-            "TableName": "crossword-userdata",
-            "KeySchema": [
-                {"AttributeName": "id", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "id", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-        user_email_table_params = {
-            "TableName": "crossword-emails",
-            "KeySchema": [
-                {"AttributeName": "email", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "email", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-        user_name_table_params = {
-            "TableName": "crossword-usernames",
-            "KeySchema": [
-                {"AttributeName": "username", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "username", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-
         conn = boto3.client("dynamodb")
         conn.create_table(**user_data_table_params)
         conn.create_table(**user_email_table_params)
@@ -241,65 +243,59 @@ def user_test_data():
 
 
 @pytest.fixture
-def fake_all_databases(aws_credentials) -> Tuple[UserDatabase, PuzzleDatabase]:
+def fake_all_databases(
+    aws_credentials,
+    user_email_table_params,
+    user_data_table_params,
+    crossword_table_params,
+    user_name_table_params,
+) -> Tuple[UserDatabase, PuzzleDatabase]:
     with mock_dynamodb():
-        user_data_table_params = {
-            "TableName": "crossword-userdata",
-            "KeySchema": [
-                {"AttributeName": "id", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "id", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-        user_email_table_params = {
-            "TableName": "crossword-emails",
-            "KeySchema": [
-                {"AttributeName": "email", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "email", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-        user_name_table_params = {
-            "TableName": "crossword-usernames",
-            "KeySchema": [
-                {"AttributeName": "username", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "username", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-        puzzle_table_params = {
-            "TableName": "crosswords",
-            "KeySchema": [
-                {"AttributeName": "id", "KeyType": "HASH"},
-            ],
-            "AttributeDefinitions": [
-                {"AttributeName": "id", "AttributeType": "S"},
-            ],
-            "ProvisionedThroughput": {
-                "ReadCapacityUnits": 10,
-                "WriteCapacityUnits": 10,
-            },
-        }
-
         conn = boto3.client("dynamodb")
         conn.create_table(**user_data_table_params)
         conn.create_table(**user_email_table_params)
         conn.create_table(**user_name_table_params)
-        conn.create_table(**puzzle_table_params)
+        conn.create_table(**crossword_table_params)
 
         yield UserDatabase(), PuzzleDatabase()
+
+
+@pytest.fixture(scope="module")
+def fake_all_services(
+    aws_credentials,
+    user_email_table_params,
+    user_data_table_params,
+    crossword_table_params,
+    user_name_table_params,
+) -> Tuple[UserDatabase, PuzzleDatabase, EmailManager, CloudStorage]:
+    with mock_all():
+        conn = boto3.client("dynamodb")
+        conn.create_table(**user_data_table_params)
+        conn.create_table(**user_email_table_params)
+        conn.create_table(**user_name_table_params)
+        conn.create_table(**crossword_table_params)
+
+        conn = boto3.client("ses", region_name="eu-north-1")
+        conn.verify_email_address(EmailAddress="crosswordapp26@gmail.com")
+
+        conn = boto3.client("s3", region_name="us-east-1")
+        conn.create_bucket(Bucket="jhb-crossword")
+
+        yield UserDatabase(), PuzzleDatabase(), EmailManager(), CloudStorage()
+
+
+@pytest.fixture
+def new_user(fake_all_services):
+    yield {"username": "uname", "password": "pword", "email": "email@addr.com"}
+    user_db = fake_all_services[0]
+
+    user_id = user_db.get_id_for_username("uname")["Item"]["id"]
+    user_db.username_table.delete_item(Key={"username": "uname"})
+    user_db.email_table.delete_item(Key={"email": "email@addr.com"})
+    user_db.user_table.delete_item(Key={"id": user_id})
+
+
+@pytest.fixture
+def delete_emails(messages):
+    yield
+    messages.clear()

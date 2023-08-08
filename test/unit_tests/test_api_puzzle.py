@@ -3,11 +3,8 @@ import pytest
 
 
 class TestPuzzleAPI:
-    def test_post_search_puzzle_no_token_message(self, flask_client):
-        flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_post_search_puzzle_no_token_message(self, flask_client, new_user):
+        flask_client.post("/auth/register", json=new_user)
         # token = json.loads(response.text)["token"]
 
         response = flask_client.post(
@@ -17,11 +14,8 @@ class TestPuzzleAPI:
 
         assert response.json["error"] == "Token is missing"
 
-    def test_post_search_puzzle_no_token_status(self, flask_client):
-        flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_post_search_puzzle_no_token_status(self, flask_client, new_user):
+        flask_client.post("/auth/register", json=new_user)
         # token = json.loads(response.text)["token"]
 
         response = flask_client.post(
@@ -31,11 +25,8 @@ class TestPuzzleAPI:
 
         assert response.status == "401 UNAUTHORIZED"
 
-    def test_search_puzzle_invalid_token_scheme(self, flask_client):
-        response = flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_search_puzzle_invalid_token_scheme(self, flask_client, new_user):
+        response = flask_client.post("/auth/register", json=new_user)
         token = json.loads(response.text)["token"]
 
         response = flask_client.post(
@@ -46,11 +37,9 @@ class TestPuzzleAPI:
 
         assert response.json["error"] == "Invalid token scheme"
 
-    def test_search_puzzle_invalid_token_scheme_code(self, flask_client):
-        response = flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_search_puzzle_invalid_token_scheme_code(self, flask_client, new_user):
+        response = flask_client.post("/auth/register", json=new_user)
+
         token = json.loads(response.text)["token"]
 
         response = flask_client.post(
@@ -62,11 +51,8 @@ class TestPuzzleAPI:
         assert response.status == "401 UNAUTHORIZED"
 
     @pytest.mark.parametrize("test_input", [None, "", "not a valid token code"])
-    def test_search_puzzle_invalid_token(self, flask_client, test_input):
-        response = flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_search_puzzle_invalid_token(self, flask_client, test_input, new_user):
+        response = flask_client.post("/auth/register", json=new_user)
 
         response = flask_client.post(
             "/puzzles/search",
@@ -77,11 +63,9 @@ class TestPuzzleAPI:
         assert response.status == "401 UNAUTHORIZED"
 
     @pytest.mark.parametrize("test_input", ["test", None, 1, True, "asdasd"])
-    def test_search_puzzle_invalid_puzzle_id(self, flask_client, test_input):
-        response = flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_search_puzzle_invalid_puzzle_id(self, flask_client, test_input, new_user):
+        response = flask_client.post("/auth/register", json=new_user)
+
         token = json.loads(response.text)["token"]
 
         response = flask_client.post(
@@ -91,11 +75,9 @@ class TestPuzzleAPI:
         )
         assert response.status == "404 NOT FOUND"
 
-    def test_upload_valid_puzzle_status(self, flask_client, test_data_dir):
-        response = flask_client.post(
-            "/auth/register",
-            json={"username": "uname", "password": "pword", "email": "email@addr.com"},
-        )
+    def test_upload_valid_puzzle_status(self, flask_client, test_data_dir, new_user):
+        response = flask_client.post("/auth/register", json=new_user)
+
         token = json.loads(response.text)["token"]
 
         data = {
@@ -110,3 +92,38 @@ class TestPuzzleAPI:
             "/puzzles/upload", data=data, headers={"Authorization": f"Bearer {token}"}
         )
         assert response.status == "200 OK"
+
+    # def test_search_puzzle_valid_puzzle_id_status(
+    #   self, flask_client, test_data_dir, new_user, app):
+    #     response = flask_client.post("/auth/register", json=new_user)
+    #
+    #     token = json.loads(response.text)["token"]
+    #
+    #     file_json =
+    #       FileStorage(
+    #           open(test_data_dir.joinpath("test.json"), "rb"),
+    #           name="test.json"
+    #           )
+    #     file_png =
+    #       FileStorage(
+    #           open(test_data_dir.joinpath("test.png"), "rb"),
+    #           name="test.png"
+    #           )
+    #
+    #     app.cloud_storage.upload_puzzle_json(file_json)
+    #     app.cloud_storage.upload_image(file_png)
+    #     app.puzzle_database.upload_puzzle_meta_data(
+    #         puzzle_id="test",
+    #         puzzle_json_fname = "test.json",
+    #         time_created=  "1/1/1",
+    #         last_modified = "2/2/2",
+    #         puzzle_image_fname = "test.png"
+    #     )
+    #
+    #     # resp = app.puzzle_database.get_puzzle_meta_data("test")
+    #     response = flask_client.post(
+    #         "/puzzles/search",
+    #         json={"id": "test"},
+    #         headers={"Authorization": f"Bearer {token}"},
+    #     )
+    #     assert response.status == "200 OK"
