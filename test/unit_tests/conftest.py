@@ -159,7 +159,7 @@ def user_email_table_params():
 @pytest.fixture
 def fake_crossword_db(aws_credentials, crossword_table_params):
     with mock_dynamodb():
-        conn = boto3.client("dynamodb")
+        conn = boto3.client("dynamodb", region_name="eu-north-1")
         conn.create_table(**crossword_table_params)
 
         yield PuzzleDatabase()
