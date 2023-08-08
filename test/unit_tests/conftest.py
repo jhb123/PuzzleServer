@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
+import logging
 
 import boto3
 import pytest
@@ -14,22 +15,26 @@ from moto.ses.models import Message
 
 from flaskr import create_app, EmailManager, PuzzleDatabase, CloudStorage, UserDatabase
 
+logger = logging.getLogger(__name__)
+
 
 @pytest.fixture()
-def app(
-    fake_crossword_db, fake_crossword_user_databases, fake_email_manager, fake_storage
-):
+def app(fake_all_databases, fake_email_manager, fake_storage):
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     # conn.create_bucket(Bucket="jhb-crossword")
 
     email_manager = fake_email_manager
     cloud_storage = fake_storage
-    database = fake_crossword_db
-    user_database = fake_crossword_user_databases
+    user_database = fake_all_databases[0]
+    database = fake_all_databases[1]
 
     config = {"TESTING": True, "SECRET_KEY": "dev", "JWT_KEY": "iLoveCats"}
     app = create_app(
-        email_manager, cloud_storage, database, user_database, test_config=config
+        email_manager=email_manager,
+        cloud_storage=cloud_storage,
+        puzzle_database=database,
+        user_database=user_database,
+        test_config=config,
     )
 
     yield app
@@ -38,7 +43,7 @@ def app(
 
 
 @pytest.fixture()
-def client(app):
+def flask_client(app):
     return app.test_client()
 
 
@@ -84,6 +89,28 @@ def db_backend(aws_credentials):
     yield db_backend
 
 
+# @pytest.fixture
+# def crossword_table_params():
+#     # For some reason which I cannot fathom, the
+#     # fake_crossword_db doesn't work when used with
+#     # the flask client. This fixture is just provided
+#     # to avoid this issue...
+#     table_params = {
+#         "TableName": "crosswords",
+#         "KeySchema": [
+#             {"AttributeName": "id", "KeyType": "HASH"},
+#         ],
+#         "AttributeDefinitions": [
+#             {"AttributeName": "id", "AttributeType": "S"},
+#         ],
+#         "ProvisionedThroughput": {
+#             "ReadCapacityUnits": 10,
+#             "WriteCapacityUnits": 10,
+#         },
+#     }
+#     yield table_params
+
+
 @pytest.fixture
 def fake_crossword_db(aws_credentials):
     with mock_dynamodb():
@@ -100,7 +127,6 @@ def fake_crossword_db(aws_credentials):
                 "WriteCapacityUnits": 10,
             },
         }
-
         conn = boto3.client("dynamodb")
         conn.create_table(**table_params)
 
@@ -212,3 +238,68 @@ def user_test_data():
     }
 
     return userdata, username, email
+
+
+@pytest.fixture
+def fake_all_databases(aws_credentials) -> Tuple[UserDatabase, PuzzleDatabase]:
+    with mock_dynamodb():
+        user_data_table_params = {
+            "TableName": "crossword-userdata",
+            "KeySchema": [
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            "AttributeDefinitions": [
+                {"AttributeName": "id", "AttributeType": "S"},
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10,
+            },
+        }
+        user_email_table_params = {
+            "TableName": "crossword-emails",
+            "KeySchema": [
+                {"AttributeName": "email", "KeyType": "HASH"},
+            ],
+            "AttributeDefinitions": [
+                {"AttributeName": "email", "AttributeType": "S"},
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10,
+            },
+        }
+        user_name_table_params = {
+            "TableName": "crossword-usernames",
+            "KeySchema": [
+                {"AttributeName": "username", "KeyType": "HASH"},
+            ],
+            "AttributeDefinitions": [
+                {"AttributeName": "username", "AttributeType": "S"},
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10,
+            },
+        }
+        puzzle_table_params = {
+            "TableName": "crosswords",
+            "KeySchema": [
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            "AttributeDefinitions": [
+                {"AttributeName": "id", "AttributeType": "S"},
+            ],
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 10,
+                "WriteCapacityUnits": 10,
+            },
+        }
+
+        conn = boto3.client("dynamodb")
+        conn.create_table(**user_data_table_params)
+        conn.create_table(**user_email_table_params)
+        conn.create_table(**user_name_table_params)
+        conn.create_table(**puzzle_table_params)
+
+        yield UserDatabase(), PuzzleDatabase()

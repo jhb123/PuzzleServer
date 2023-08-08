@@ -56,7 +56,6 @@ def create_app(
     user_database: UserDatabase,
     test_config=None,
 ):
-    print(".")
     # create and configure the app
     app = PuzzleFlask(
         email_manager,

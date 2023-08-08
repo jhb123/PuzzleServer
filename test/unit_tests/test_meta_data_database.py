@@ -74,6 +74,12 @@ class TestPuzzleDatabase:
             )
             assert TypeError == excinfo.type
 
+    @pytest.mark.parametrize("test_input", [None, 1, True, "asdasd"])
+    def test_get_meta_data_bad_id(self, fake_crossword_db, test_input):
+        with pytest.raises(KeyError) as excinfo:
+            fake_crossword_db.get_puzzle_meta_data(test_input)
+            assert KeyError == excinfo.type
+
     @pytest.mark.parametrize("fname", ["file", "png", ".png", ".", "file."])
     def test_upload_meta_data_bad_puzzle_file(self, fake_crossword_db, fname):
         with pytest.raises(ValueError, match=r"Not a file") as excinfo:

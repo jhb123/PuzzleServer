@@ -2,8 +2,10 @@ import json
 import zipfile
 from io import BytesIO
 
+import botocore
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app, send_file, request
+from moto.dynamodb.exceptions import ResourceNotFoundException
 
 from flaskr.auth import token_required
 
@@ -26,8 +28,9 @@ def search():
     # puzzle_id = f'{puzzle_id}'
     try:
         puzzle = current_app.puzzle_database.get_puzzle_meta_data(puzzle_id)
+    except KeyError:
+        return "Puzzle not found", 404
     except ClientError:
-        current_app.logger.exception("Database Client error")
         return "Database Client error", 500
     if puzzle is None:
         return "No resource found", 404
@@ -79,7 +82,6 @@ def upload():
     current_app.logger.info(last_modified)
 
     try:
-        print(f"image file {image_file.filename}")
         current_app.cloud_storage.upload_image(image_file)
         current_app.cloud_storage.upload_puzzle_json(puzzle_file)
         current_app.puzzle_database.upload_puzzle_meta_data(
@@ -92,6 +94,6 @@ def upload():
         current_app.logger.info(f"uploaded {puzzle_id}")
         return "OK", 200
 
-    except ClientError:
-        current_app.logger.exception()
+    except ClientError as e:
+        current_app.logger.exception(e)
         return 500

@@ -4,10 +4,7 @@ from functools import wraps
 import jwt
 from flask import (
     Blueprint,
-    redirect,
     request,
-    session,
-    url_for,
     current_app,
     jsonify,
 )
@@ -15,9 +12,6 @@ from pyisemail import is_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-# Secret key used to sign and verify the JWTs
-# secret_key = 'iLoveCats'
 
 
 @bp.route("/register", methods=["POST"])
@@ -119,13 +113,15 @@ def login():
 def reset_password():
     if request.method == "GET":
         email = request.args.get("email")
-        if email is None:
+        if email is None or email == "":
             return "No email submitted", 400
-
         response = current_app.user_database.get_id_for_email(email)
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retrieving user data", status_code
+
+        if "Item" not in response:
+            return "Invalid username", 400
 
         user_id = response["Item"]["id"]
 
@@ -154,9 +150,13 @@ def reset_password():
             return "reset_guid empty", 400
 
         response = current_app.user_database.get_id_for_username(username)
+
         status_code = response["ResponseMetadata"]["HTTPStatusCode"]
         if status_code != 200:
             return "Error retreiving user data", status_code
+
+        if "Item" not in response:
+            return "Invalid username", 400
 
         user_id = response["Item"]["id"]
 
@@ -176,18 +176,6 @@ def reset_password():
         token = generate_token(username)
 
         return token, 200
-
-
-def generate_reset_password_email(email: str) -> str:
-    response = current_app.user_database.get_id_for_email(email)
-    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
-    if status_code != 200:
-        return "Error retrieving user data", status_code
-
-    reset_guid = response["Item"]["resetGuid"]
-
-    reset_email_body = f"Your reset code is:\n{reset_guid}"
-    return reset_email_body
 
 
 def token_required(f):

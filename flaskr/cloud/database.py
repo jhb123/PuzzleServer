@@ -1,6 +1,7 @@
 import logging
 import boto3
 from botocore.exceptions import ClientError
+from moto.dynamodb.exceptions import ResourceNotFoundException
 from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 
@@ -66,8 +67,8 @@ class UserDatabase:
         # do a get item for email
         try:
             email_already_used = self._check_email_registered(email)
-        except ClientError:
-            logger.exception()
+        except ClientError as e:
+            logger.exception(e)
             return False
 
         try:
@@ -126,7 +127,7 @@ class UserDatabase:
                     self.email_table.delete_item(Key={"email": email})
                     return False
         except ClientError:
-            logger.exception("There was a client error")
+            logger.exception("There was an aws client error")
             return False
 
 
@@ -138,7 +139,6 @@ class PuzzleDatabase:
     def get_puzzle_meta_data(self, puzzle_id: str):
         logger.info(f"Searching database for {puzzle_id}")
         response = self.table.get_item(Key={"id": puzzle_id})
-
         return response["Item"]
 
     def upload_puzzle_meta_data(
@@ -159,7 +159,8 @@ class PuzzleDatabase:
             raise ValueError("puzzle must be a JSON file")
         if get_file_extension(puzzle_image_fname) != "png":
             raise ValueError("puzzle icon must be a PNG file")
-        self.table.put_item(
+
+        response = self.table.put_item(
             Item={
                 "id": puzzle_id,
                 "puzzle": puzzle_json_fname,
@@ -168,3 +169,4 @@ class PuzzleDatabase:
                 "lastModified": last_modified,
             }
         )
+        print(response)
