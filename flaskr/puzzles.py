@@ -2,10 +2,8 @@ import json
 import zipfile
 from io import BytesIO
 
-import botocore
 from botocore.exceptions import ClientError
 from flask import Blueprint, current_app, send_file, request
-from moto.dynamodb.exceptions import ResourceNotFoundException
 
 from flaskr.auth import token_required
 

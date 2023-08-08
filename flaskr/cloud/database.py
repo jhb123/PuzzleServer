@@ -1,7 +1,6 @@
 import logging
 import boto3
 from botocore.exceptions import ClientError
-from moto.dynamodb.exceptions import ResourceNotFoundException
 from mypy_boto3_dynamodb import DynamoDBServiceResource
 from mypy_boto3_dynamodb.service_resource import Table
 
@@ -169,4 +168,3 @@ class PuzzleDatabase:
                 "lastModified": last_modified,
             }
         )
-        print(response)
