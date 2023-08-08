@@ -93,37 +93,56 @@ class TestPuzzleAPI:
         )
         assert response.status == "200 OK"
 
-    # def test_search_puzzle_valid_puzzle_id_status(
-    #   self, flask_client, test_data_dir, new_user, app):
-    #     response = flask_client.post("/auth/register", json=new_user)
-    #
-    #     token = json.loads(response.text)["token"]
-    #
-    #     file_json =
-    #       FileStorage(
-    #           open(test_data_dir.joinpath("test.json"), "rb"),
-    #           name="test.json"
-    #           )
-    #     file_png =
-    #       FileStorage(
-    #           open(test_data_dir.joinpath("test.png"), "rb"),
-    #           name="test.png"
-    #           )
-    #
-    #     app.cloud_storage.upload_puzzle_json(file_json)
-    #     app.cloud_storage.upload_image(file_png)
-    #     app.puzzle_database.upload_puzzle_meta_data(
-    #         puzzle_id="test",
-    #         puzzle_json_fname = "test.json",
-    #         time_created=  "1/1/1",
-    #         last_modified = "2/2/2",
-    #         puzzle_image_fname = "test.png"
-    #     )
-    #
-    #     # resp = app.puzzle_database.get_puzzle_meta_data("test")
-    #     response = flask_client.post(
-    #         "/puzzles/search",
-    #         json={"id": "test"},
-    #         headers={"Authorization": f"Bearer {token}"},
-    #     )
-    #     assert response.status == "200 OK"
+    def test_post_search_valid_puzzle_status(
+        self, flask_client, test_data_dir, new_user
+    ):
+        response = flask_client.post("/auth/register", json=new_user)
+
+        token = json.loads(response.text)["token"]
+
+        data = {
+            "id": "123",
+            "timeCreated": "28/5/2023 12:35:36",
+            "lastModified": "28/5/2023 13:35:36",
+            "image": (test_data_dir.joinpath("test.png")).open("rb"),
+            "puzzle": (test_data_dir.joinpath("test.json")).open("rb"),
+        }
+
+        response = flask_client.post(
+            "/puzzles/upload", data=data, headers={"Authorization": f"Bearer {token}"}
+        )
+
+        response = flask_client.post(
+            "/puzzles/search",
+            json={"id": "123"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status == "200 OK"
+
+    def test_get_search_valid_puzzle_status(
+        self, flask_client, test_data_dir, new_user
+    ):
+        response = flask_client.post("/auth/register", json=new_user)
+
+        token = json.loads(response.text)["token"]
+
+        data = {
+            "id": "123",
+            "timeCreated": "28/5/2023 12:35:36",
+            "lastModified": "28/5/2023 13:35:36",
+            "image": (test_data_dir.joinpath("test.png")).open("rb"),
+            "puzzle": (test_data_dir.joinpath("test.json")).open("rb"),
+        }
+
+        response = flask_client.post(
+            "/puzzles/upload", data=data, headers={"Authorization": f"Bearer {token}"}
+        )
+
+        response = flask_client.get(
+            "/puzzles/search",
+            query_string={"id": "123"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status == "200 OK"

@@ -36,17 +36,16 @@ def search():
         return "No resource found", 404
 
     current_app.logger.info(puzzle["id"])
-
+    puzzle_image_id = puzzle["icon"]
+    puzzle_json_id = puzzle["puzzle"]
     try:
-        puzzle_image = current_app.cloud_storage.download_image(f"{puzzle_id}.png")
+        puzzle_image = current_app.cloud_storage.download_image(puzzle_image_id)
     except ClientError:
-        return f"Could not locate {puzzle_id}.png", 404
+        return f"Could not locate {puzzle_image_id}", 404
     try:
-        puzzle_json = current_app.cloud_storage.download_puzzle_json(
-            f"{puzzle_id}.json"
-        )
+        puzzle_json = current_app.cloud_storage.download_puzzle_json(puzzle_json_id)
     except ClientError:
-        return f"Could not locate {puzzle_id}.json", 404
+        return f"Could not locate {puzzle_json_id}", 404
 
     files = [
         (f"{puzzle_id}.png", puzzle_image),

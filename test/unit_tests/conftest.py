@@ -47,11 +47,6 @@ def flask_client(app):
     return app.test_client()
 
 
-@pytest.fixture()
-def runner(app):
-    return app.test_cli_runner()
-
-
 @pytest.fixture(scope="module")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""
@@ -220,44 +215,44 @@ def fake_crossword_user_databases(
         yield UserDatabase()
 
 
-@pytest.fixture
-def user_test_data():
-    userdata = {
-        "id": {"S": "test"},
-        "username": {"S": "uname"},
-        "password": {"S": "pword"},
-        "email": {"S": "email@addr.com"},
-        "resetGuid": {"S": "123"},
-    }
+# @pytest.fixture
+# def user_test_data():
+#     userdata = {
+#         "id": {"S": "test"},
+#         "username": {"S": "uname"},
+#         "password": {"S": "pword"},
+#         "email": {"S": "email@addr.com"},
+#         "resetGuid": {"S": "123"},
+#     }
+#
+#     username = {
+#         "username": {"S": "uname"},
+#         "id": {"S": "test"},
+#     }
+#     email = {
+#         "email": {"S": "email@addr.com"},
+#         "id": {"S": "test"},
+#     }
+#
+#     return userdata, username, email
 
-    username = {
-        "username": {"S": "uname"},
-        "id": {"S": "test"},
-    }
-    email = {
-        "email": {"S": "email@addr.com"},
-        "id": {"S": "test"},
-    }
 
-    return userdata, username, email
-
-
-@pytest.fixture
-def fake_all_databases(
-    aws_credentials,
-    user_email_table_params,
-    user_data_table_params,
-    crossword_table_params,
-    user_name_table_params,
-) -> Tuple[UserDatabase, PuzzleDatabase]:
-    with mock_dynamodb():
-        conn = boto3.client("dynamodb")
-        conn.create_table(**user_data_table_params)
-        conn.create_table(**user_email_table_params)
-        conn.create_table(**user_name_table_params)
-        conn.create_table(**crossword_table_params)
-
-        yield UserDatabase(), PuzzleDatabase()
+# @pytest.fixture
+# def fake_all_databases(
+#     aws_credentials,
+#     user_email_table_params,
+#     user_data_table_params,
+#     crossword_table_params,
+#     user_name_table_params,
+# ) -> Tuple[UserDatabase, PuzzleDatabase]:
+#     with mock_dynamodb():
+#         conn = boto3.client("dynamodb")
+#         conn.create_table(**user_data_table_params)
+#         conn.create_table(**user_email_table_params)
+#         conn.create_table(**user_name_table_params)
+#         conn.create_table(**crossword_table_params)
+#
+#         yield UserDatabase(), PuzzleDatabase()
 
 
 @pytest.fixture(scope="module")

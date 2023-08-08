@@ -75,8 +75,7 @@ coverage run -m pytest
 ```
 View the coverage with
 ```commandline
-coverage html --omit="*/test*" -d test/coverage
-
+coverage html --omit="test/*" -d test/coverage
 ```
 
 
