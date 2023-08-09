@@ -1,92 +1,66 @@
-import base64
-import os
 import uuid
-from email.message import EmailMessage
 from functools import wraps
 
 import jwt
 from flask import (
     Blueprint,
-    g,
-    redirect,
     request,
-    session,
-    url_for,
     current_app,
     jsonify,
 )
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from pyisemail import is_email
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from flaskr.db import get_db
-
 bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-# Secret key used to sign and verify the JWTs
-# secret_key = 'iLoveCats'
 
 
 @bp.route("/register", methods=["POST"])
 def register():
+    current_app.logger.info("Beginning registration")
     username = request.json.get("username")
     password = request.json.get("password")
     email = request.json.get("email")
-    db = get_db()
+
     error = None
 
-    valid_email = is_email(email, check_dns=True)
+    valid_email = False
+
+    try:
+        if current_app.config["TESTING"]:
+            valid_email = is_email(email, check_dns=False, allow_gtld=False)
+        else:
+            valid_email = is_email(email, check_dns=True, allow_gtld=False)
+        current_app.logger.info("Email input was valid")
+    except TypeError:
+        error = "Email was not a string"
 
     if not username:
         error = "Username is required."
     elif not password:
         error = "Password is required."
     elif not valid_email:
-        error = "email is not valid."
+        error = "Email is not valid."
 
     if error is not None:
         current_app.logger.info(error)
         return error, 400
 
-    else:
-        try:
-            db.execute(
-                "INSERT INTO user"
-                " (username, password, email, resetGuid)"
-                " VALUES (?, ?, ?, ?)",
-                (username, generate_password_hash(password), email, str(uuid.uuid4())),
-            )
-            db.commit()
+    current_app.logger.info("generating user id")
+    user_id = str(uuid.uuid4())
+    current_app.logger.info("hashing password")
+    hashed_password = generate_password_hash(password)
+    current_app.logger.info("generating reset code")
+    reset_code = str(uuid.uuid4())
 
-            token = generate_token(username)
-
-            return jsonify({"token": token}), 201
-        except db.IntegrityError:
-            # figure out how to tell if its username or email which is conflicted.
-            error = "username or email already registered"
-            return error, 409
-
-
-@bp.before_app_request
-def load_logged_in_user():
-    user_id = session.get("user_id")
-
-    if user_id is None:
-        g.user = None
-    else:
-        g.user = (
-            get_db().execute("SELECT * FROM user WHERE id = ?", (user_id,)).fetchone()
-        )
-
-
-@bp.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
+    success = current_app.user_database.register_new_user(
+        user_id, username, hashed_password, email, reset_code
+    )
+    if success:
+        token = generate_token(username)
+        return jsonify({"token": token}), 201
+    else:  # figure out how to tell if its username or email which is conflicted.
+        error = "Issue registering"
+        return error, 409
 
 
 # Generate a token for a given user
@@ -114,9 +88,20 @@ def login():
     username = request.json.get("username")
     password = request.json.get("password")
 
-    db = get_db()
+    response = current_app.user_database.get_id_for_username(username)
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code != 200:
+        return "Error retreiving user data", status_code
 
-    user = db.execute("SELECT * FROM user WHERE username = ?", (username,)).fetchone()
+    user_id = response["Item"]["id"]
+
+    response = current_app.user_database.get_user_data(user_id)
+
+    status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+    if status_code != 200:
+        return "Error retrieving user data", status_code
+
+    user = response["Item"]
 
     if user is not None and check_password_hash(user["password"], password):
         token = generate_token(username)
@@ -125,30 +110,35 @@ def login():
         return jsonify({"error": "Invalid credentials"}), 401
 
 
+# TODO: make this simpler
+# flake8: noqa: C901
 @bp.route("/resetPassword", methods=["GET", "POST"])
 def reset_password():
     if request.method == "GET":
         email = request.args.get("email")
-        if email is None:
+        if email is None or email == "":
             return "No email submitted", 400
+        response = current_app.user_database.get_id_for_email(email)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
 
-        try:
-            db = get_db()
-            user = db.execute(
-                "SELECT username FROM user WHERE email = ?", (email,)
-            ).fetchone()
+        if "Item" not in response:
+            return "Invalid username", 400
 
-            email_body = generate_reset_password_email(email)
-            send_reset_password_email(email, email_body)
-            return user["username"], 200
-        except TypeError as e:
-            current_app.logger.warning(e)
-            return "No such user", 404
-        except db.IntegrityError as e:
-            # figure out how to tell if its username or email which is conflicted.
-            current_app.logger.warning(e)
-            error = "username or email already registered"
-            return error, 404
+        user_id = response["Item"]["id"]
+
+        response = current_app.user_database.get_user_data(user_id)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
+
+        user = response["Item"]
+
+        reset_guid = user["resetGuid"]
+        current_app.email_manager.send_reset_code(email, reset_guid)
+
+        return "OK", 200
 
     elif request.method == "POST":
         username = request.json.get("username")
@@ -162,88 +152,33 @@ def reset_password():
         if reset_guid == "" or reset_guid is None:
             return "reset_guid empty", 400
 
-        db = get_db()
+        response = current_app.user_database.get_id_for_username(username)
 
-        # check valid reset code
-        # user_data = db.execute(
-        #     "SELECT * FROM user WHERE resetGuid = ?", (reset_guid,)
-        # ).fetchone()
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retreiving user data", status_code
 
-        # update user with valid reset code
-        cursor = db.cursor()
-        cursor.execute(
-            "UPDATE user SET password = ? WHERE resetGuid is ?",
-            (generate_password_hash(password), reset_guid),
+        if "Item" not in response:
+            return "Invalid username", 400
+
+        user_id = response["Item"]["id"]
+
+        response = current_app.user_database.get_user_data(user_id)
+        status_code = response["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code != 200:
+            return "Error retrieving user data", status_code
+
+        user = response["Item"]
+        if user["resetGuid"] != reset_guid:
+            return "Invalid reset code", 400
+
+        current_app.user_database.update_password(
+            user["id"], generate_password_hash(password), str(uuid.uuid4())
         )
-        db.commit()
 
-        new_guid = str(uuid.uuid4())
-        cursor.execute(
-            "UPDATE user SET resetGuid = ? WHERE username is ?", (new_guid, username)
-        )
-        db.commit()
         token = generate_token(username)
 
         return token, 200
-
-
-def generate_reset_password_email(email: str) -> str:
-    db = get_db()
-
-    reset_guid = db.execute("SELECT * FROM user WHERE email = ?", (email,)).fetchone()
-    reset_email_body = f"Your reset code is:\n{reset_guid['resetGuid']}"
-    return reset_email_body
-
-
-def send_reset_password_email(email: str, email_body: str):
-    scopes = ["https://mail.google.com/"]
-
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    path_to_token = current_app.config["GMAIL_TOKEN"]
-    path_to_creds = current_app.config["GMAIL_CREDENTIALS"]
-
-    if os.path.exists(path_to_token):
-        creds = Credentials.from_authorized_user_file(path_to_token, scopes)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(path_to_creds, scopes)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open(path_to_token, "w") as token:
-            token.write(creds.to_json())
-
-    try:
-        # Call the Gmail API
-        service = build("gmail", "v1", credentials=creds)
-        # results = service.users().labels().list(userId="me").execute()
-
-        message = EmailMessage()
-        message.set_content(email_body)
-        message["To"] = email
-        message["From"] = "crosswordapp26@gmail.com"
-        message["Subject"] = "Reset your password"
-
-        # encoded message
-        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-
-        create_message = {"raw": encoded_message}
-        # pylint: disable=E1101
-        send_message = (
-            service.users().messages().send(userId="me", body=create_message).execute()
-        )
-        print(f'Message Id: {send_message["id"]}')
-
-    except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f"An error occurred: {error}")
-
-    return 0
 
 
 def token_required(f):

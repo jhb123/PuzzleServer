@@ -1,47 +1,91 @@
-import os
+from os import PathLike, makedirs
 
 from flask import Flask
 
+from flaskr.cloud.database import PuzzleDatabase, UserDatabase
+from flaskr.cloud.email import EmailManager
+from flaskr.cloud.secrets import Secrets
+from flaskr.cloud.storage import CloudStorage
 
-def create_app(test_config=None):
-    print(".")
+
+class PuzzleFlask(Flask):
+    """
+    This class provides dependency injection for the Flask app class.
+    """
+
+    def __init__(
+        self,
+        email_manager: EmailManager,
+        cloud_storage: CloudStorage,
+        puzzle_database: PuzzleDatabase,
+        user_database: UserDatabase,
+        import_name: str,
+        static_url_path: str | None = None,
+        static_folder: str | PathLike | None = "static",
+        static_host: str | None = None,
+        host_matching: bool = False,
+        subdomain_matching: bool = False,
+        template_folder: str | PathLike | None = "templates",
+        instance_path: str | None = None,
+        instance_relative_config: bool = False,
+        root_path: str | None = None,
+    ):
+        super().__init__(
+            import_name,
+            static_url_path,
+            static_folder,
+            static_host,
+            host_matching,
+            subdomain_matching,
+            template_folder,
+            instance_path,
+            instance_relative_config,
+            root_path,
+        )
+
+        self.email_manager = email_manager
+        self.cloud_storage = cloud_storage
+        self.puzzle_database = puzzle_database
+        self.user_database = user_database
+
+
+def create_app(
+    email_manager: EmailManager,
+    cloud_storage: CloudStorage,
+    puzzle_database: PuzzleDatabase,
+    user_database: UserDatabase,
+    test_config=None,
+):
     # create and configure the app
-    app = Flask(__name__, instance_relative_config=True)
-    # app.config.from_file("../config.json", load=json.load)
-
-    app.config.from_mapping(
-        SECRET_KEY="dev",
-        JWT_KEY="iLoveCats",
-        DATABASE=os.path.join(app.instance_path, "flaskr.sqlite"),
+    app = PuzzleFlask(
+        email_manager,
+        cloud_storage,
+        puzzle_database,
+        user_database,
+        import_name=__name__,
+        instance_relative_config=True,
     )
-
-    app_dir_path = os.path.dirname(os.path.realpath(__file__))
-
-    secret_configs = "/".join(app_dir_path.split("/")[0:-1])
-
-    app.config["ICON_UPLOAD_FOLDER"] = f"{app_dir_path}/uploads/icons"
-    app.config["PUZZLE_UPLOAD_FOLDER"] = f"{app_dir_path}/uploads/puzzles"
-    app.config["GMAIL_TOKEN"] = f"{secret_configs}/token.json"
-    app.config["GMAIL_CREDENTIALS"] = f"{secret_configs}/credentials.json"
-
-    if not os.path.isdir(app.config["ICON_UPLOAD_FOLDER"]):
-        app.logger.info("Creating icon upload folder")
-        os.makedirs(app.config["ICON_UPLOAD_FOLDER"])
-    if not os.path.isdir(app.config["PUZZLE_UPLOAD_FOLDER"]):
-        app.logger.info("Creating icon upload folder")
-        os.makedirs(app.config["PUZZLE_UPLOAD_FOLDER"])
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
-        app.logger.info("Loading config from pyfile")
-        app.config.from_pyfile("config.py", silent=True)
+        secrets = Secrets()
+        app.logger.info("Loading config from dynamo")
+        app.config.update(
+            TESTING=False,
+            SECRET_KEY=secrets.get_secret("SECRET_KEY"),
+            JWT_KEY=secrets.get_secret("JWT_KEY"),
+        )
     else:
         # load the test config if passed in
-        app.config.from_mapping(test_config)
+        app.config.update(
+            TESTING=True,
+            SECRET_KEY=test_config["SECRET_KEY"],
+            JWT_KEY=test_config["JWT_KEY"],
+        )
 
     # ensure the instance folder exists
     try:
-        os.makedirs(app.instance_path)
+        makedirs(app.instance_path)
     except OSError:
         pass
 
@@ -50,10 +94,6 @@ def create_app(test_config=None):
     def hello():
         app.logger.info("hello test sent")
         return "Hello, World!"
-
-    from . import db
-
-    db.init_app(app)
 
     from . import auth
 
