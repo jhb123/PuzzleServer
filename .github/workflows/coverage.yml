@@ -94,7 +94,8 @@ jobs:
           pip install coverage
       - name: "update readme badge"
         run: |
-          set -e
+          set -xe
+          ls
           coverage_output=$(python -m coverage report --format=total)
           python ci/update_readme.py --coverage "$coverage_output"
           git diff --exit-code || {
