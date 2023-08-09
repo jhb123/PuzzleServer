@@ -1,4 +1,6 @@
 # PuzzleServer
+![Static Badge](https://img.shields.io/badge/Coverage-01.2%25-%232DD100)
+
 [Coverage report](https://htmlpreview.github.io/?https://github.com/jhb123/PuzzleServerCoverageReports/blob/main/coverage/index.html)
 ## Running the server locally
 Install the server with

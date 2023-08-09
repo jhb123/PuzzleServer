@@ -23,10 +23,16 @@ jobs:
     - name: Install dependencies
       run: pip install -e '.[test]'
     - name: Test with pytest
-      run: coverage run -m pytest
+      run: coverage run -m pytest #test/unit_tests/test_json.py
 
     - name: Generate Report
       run: coverage html --omit="*/test*" -d coverage_report
+    - name: "Upload coverage artifact"
+      if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: .coverage
     - name: "Upload HTML report"
       if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3
@@ -38,24 +44,25 @@ jobs:
   publish:
     name: Publish report
     needs: build
-    if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' # && github.base_ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+        name: "Checkout repo"
       - name: "Checkout reports repo"
         run: |
           set -xe
           git clone https://${{secrets.REPORT_TOKEN}}@github.com/jhb123/PuzzleServerCoverageReports
           cd PuzzleServerCoverageReports
-          git config user.name Joe Briggs
-          git config user.email jhbriggs23@gmail.com
+          git config --global user.name Joe Briggs
+          git config --global user.email jhbriggs23@gmail.com
           git checkout main
       - name: "download report"
         uses: actions/download-artifact@v3
         with:
           name: coverage_report
           path: PuzzleServerCoverageReports/coverage
-
-      - name: "commit the file"
+      - name: "upload coverage report"
         run: |
           set -xe
           ls
@@ -64,3 +71,36 @@ jobs:
           git add coverage/* -f
           git commit -m "adds a coverage report"
           git push
+  badge:
+    name: Update Badge
+    needs: build
+    if: github.event_name == 'pull_request' # && github.base_ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+        name: "Checkout repo"
+      - name: "download coverage"
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+      - name: Install required python packages
+        run: |
+          pip install coverage
+      - name: "update readme badge"
+        run: |
+          set -e
+          coverage_output=$(python -m coverage report --format=total)
+          python ci/update_readme.py --coverage "$coverage_output"
+          git diff --exit-code || {
+            git config --global user.email "jhbriggs@gmail.com"
+            git config --global user.name "automated user"
+            git add README.md
+            git commit -m "[automation] update readme" --no-verify
+            git push
+          }
