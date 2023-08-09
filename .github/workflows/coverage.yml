@@ -102,5 +102,5 @@ jobs:
             git config --global user.name "automated user"
             git add README.md
             git commit -m "[automation] update readme" --no-verify
-            git push
+            git push origin $GITHUB_HEAD_REF
           }
