@@ -1,57 +1,18 @@
 # PuzzleServer
-
+[Coverage report](https://htmlpreview.github.io/?https://github.com/jhb123/PuzzleServerCoverageReports/blob/main/coverage/index.html)
+## Running the server locally
+Install the server with
+```commandline
+pip install -e .
+```
 Start the server locally with:
 ```commandline
 gunicorn -w 4 -b 0.0.0.0:5000 run_server:app
 ```
-
-Start server in debug mode with
-```commandline
-flask --app flaskr run --debug
-```
-Start server to run on local network
-```commandline
-flask --app flaskr run --debug --host 0.0.0.0
-```
-
-Initialise database with
-```commandline
-flask --app flaskr init-db
-```
 Stop the server with `ctrl+C`
-
-Note, credentials must be generated for the password reset to work. Use `generate_credentials.py` to create the nessesary files.
-
-To generate the configuration for production, create a `config.py` containing a `SECRET_KEY` and `JWT_KEY`. Generate these strings with
-```commandline
-python -c 'import secrets; print(secrets.token_hex())'
-```
-## Deployment
-The python app can be built using either the `build` package or it can be deployed with Docker.
-
-### Building
-generate the requirements with pipreqs
-```commandline
-pip install build
-python -m build --wheel
-```
-Install with
-```commandline
-pip install flaskr-1.0.0-py3-none-any.whl
-```
-### Docker
-Build with
-```commandline
-docker build -t puzzle_server .
-```
-start with
-```commandline
-docker run -p 5000:5000 puzzle_server
-```
 ## Development
 To develop this package, use
 ```commandline
-pip install -e .
 pip install -e '.[dev]'
 ```
 Pre-commit hooks will keep your code tidy. Set them up with
@@ -77,8 +38,19 @@ View the coverage with
 ```commandline
 coverage html --omit="test/*" -d test/coverage
 ```
+### CI
+The test suite runs whenever commits are pushed.
+A coverage report is generated when a PR into main is created
 
+`act` is a useful tool for developing pipelines. Create an artifact directory
+```commandline
+mkdir /tmp/artifacts
+```
+and then run the jobs you want to test e.g.
+```commandline
+act --container-architecture linux/amd64 -s REPORT_TOKEN=*** --artifact-server-path /tmp/artifacts -j publish
 
+```
 ## AWS
 While developing, using the AWS plugin for PyCharm may be the best process.
 
