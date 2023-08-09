@@ -26,7 +26,7 @@ jobs:
     - name: Install dependencies
       run: pip install -e '.[test]'
     - name: Test with pytest
-      run: coverage run -m pytest test/unit_tests/test_json.py
+      run: coverage run -m pytest
 
     - name: Generate Report
       run: coverage html --omit="*/test*" -d coverage_report
