@@ -28,13 +28,13 @@ jobs:
     - name: Generate Report
       run: coverage html --omit="*/test*" -d coverage_report
     - name: "Upload coverage artifact"
-      if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main'
+      if: github.event_name == 'pull_request' #&& github.base_ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3
       with:
         name: coverage
         path: .coverage
     - name: "Upload HTML report"
-      if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/main'
+      if: github.event_name == 'pull_request' #&& github.base_ref == 'refs/heads/main'
       uses: actions/upload-artifact@v3
       with:
         name: coverage_report
