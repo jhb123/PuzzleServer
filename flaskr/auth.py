@@ -26,8 +26,11 @@ def register():
     valid_email = False
 
     try:
-        valid_email = is_email(email, check_dns=True)
-        current_app.logger.info("Email input fit expected regex rules")
+        if current_app.config["TESTING"]:
+            valid_email = is_email(email, check_dns=False, allow_gtld=False)
+        else:
+            valid_email = is_email(email, check_dns=True, allow_gtld=False)
+        current_app.logger.info("Email input was valid")
     except TypeError:
         error = "Email was not a string"
 

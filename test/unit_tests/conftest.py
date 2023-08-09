@@ -282,13 +282,18 @@ def fake_all_services(
 
 @pytest.fixture
 def new_user(fake_all_services):
-    yield {"username": "uname", "password": "pword", "email": "email@addr.com"}
-    user_db = fake_all_services[0]
+    user = {"username": "uname", "password": "pword", "email": "email@addr.com"}
+    yield user
 
-    user_id = user_db.get_id_for_username("uname")["Item"]["id"]
-    user_db.username_table.delete_item(Key={"username": "uname"})
-    user_db.email_table.delete_item(Key={"email": "email@addr.com"})
-    user_db.user_table.delete_item(Key={"id": user_id})
+    user_db = fake_all_services[0]
+    try:
+        user_data = user_db.get_id_for_username("uname")["Item"]
+        user_db.username_table.delete_item(Key={"username": user_data["username"]})
+        user_db.email_table.delete_item(Key={"email": user_data["email"]})
+        user_db.user_table.delete_item(Key={"id": user_data["id"]})
+    except KeyError:
+        user_db.username_table.delete_item(Key={"username": user["username"]})
+        user_db.email_table.delete_item(Key={"email": user["email"]})
 
 
 @pytest.fixture

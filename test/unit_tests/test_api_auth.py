@@ -70,10 +70,9 @@ def test_register_no_email(flask_client):
 @pytest.mark.parametrize(
     "test_input", [None, "", "a.b.c", "a@b", "@gmail.com", "www.a@com"]
 )
-def test_register_invalid_emails(flask_client, test_input):
-    user_json = {"username": "uname", "password": "pword", "email": test_input}
-    flask_client.post("/auth/register", json=user_json)
-    response = flask_client.post("/auth/register", json=user_json)
+def test_register_invalid_emails(flask_client, test_input, new_user):
+    new_user["email"] = test_input
+    response = flask_client.post("/auth/register", json=new_user)
 
     assert response.status == "400 BAD REQUEST"
 
@@ -190,9 +189,11 @@ def test_get_reset_password_email_received(
 @pytest.mark.parametrize(
     "test_input", [None, "", "a.b.c", "a@b", "@gmail.com", "www.a@com"]
 )
-def test_get_reset_password_bad_email(flask_client, test_input):
-    user_json = {"username": "uname", "password": "pword", "email": test_input}
-    flask_client.post("/auth/register", json=user_json)
+def test_get_reset_password_bad_email(
+    flask_client, test_input, delete_emails, new_user
+):
+    new_user["email"] = test_input
+    flask_client.post("/auth/register", json=new_user)
     response = flask_client.get(
         "/auth/resetPassword", query_string={"email": test_input}
     )
