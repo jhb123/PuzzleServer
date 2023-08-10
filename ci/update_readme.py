@@ -39,7 +39,7 @@ if __name__ == "__main__":
     with open("README.md", "r+") as f:
         file = f.read()
         file_update = re.sub(
-            r".*https://img.shields.io/badge/coverage-.*",
+            r".*https://img.shields.io/badge/Coverage-.*",
             make_sheild(coverage_value, 50, 100),
             file,
         )
