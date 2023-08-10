@@ -104,5 +104,9 @@ jobs:
             git checkout $CURRENT_BRANCH
             git add README.md
             git commit -m "[automation] update readme" --no-verify
-            git push origin HEAD:$CURRENT_BRANCH
           }
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
