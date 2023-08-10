@@ -1,4 +1,12 @@
 Dockerfile
 .git
 .gitignore
+build
+.pytest_cache
+.idea
+.ci
+dist
+instance
+.coverage
 PuzzleServer.egg-info
+venv
