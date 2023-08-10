@@ -2,8 +2,8 @@ name: Test push
 
 on:
   push:
-    branches:
-      - '!main'
+    branches-ignore:
+      - 'main'
   pull_request:
     branches:
       - "main"
