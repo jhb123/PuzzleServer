@@ -101,8 +101,8 @@ jobs:
           git diff --exit-code || {
             git config --global user.email "jhbriggs@gmail.com"
             git config --global user.name "automated user"
-            git pull origin $CURRENT_BRANCH
+            git checkout $CURRENT_BRANCH
             git add README.md
             git commit -m "[automation] update readme" --no-verify
-            git push origin HEAD:$GITHUB_HEAD_REF
+            git push origin $GITHUB_HEAD_REF
           }
