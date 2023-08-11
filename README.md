@@ -62,3 +62,15 @@ Set up an IAM user with the required permissions. Create an access key for the u
 ```commandline
 aws configure
 ```
+## Deployment
+Use docker to build a container
+```commandline
+ docker build --tag puzzle_server .
+```
+Test the container with
+```commandline
+docker run --env-file .env_upload -p 5000:5000  puzzle_server
+```
+
+
+Go to the ECR console page and use the instructions there to upload the container to ECR.
