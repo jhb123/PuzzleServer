@@ -67,10 +67,20 @@ Use docker to build a container
 ```commandline
  docker build --tag puzzle_server .
 ```
-Test the container with
-```commandline
-docker run --env-file .env_upload -p 5000:5000  puzzle_server
+Create an environment file that lets docker use your AWS environment variables. These can be for in `~/.aws` if you set up the environment using the aws cli tool.
 ```
-
+AWS_DEFAULT_REGION=eu-north-1
+AWS_ACCESS_KEY_ID=<super secret info>
+AWS_SECRET_ACCESS_KEY=<more super secret info>
+```
+Run the container with
+```commandline
+docker run --env-file .docker_image_test_env_vars -p 5000:5000  puzzle_server
+```
+and then use
+```commandline
+curl http://0.0.0.0:5000/hello
+```
+to check that `Hello, World!` is sent back.
 
 Go to the ECR console page and use the instructions there to upload the container to ECR.
