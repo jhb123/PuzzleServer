@@ -62,10 +62,10 @@ Set up an IAM user with the required permissions. Create an access key for the u
 ```commandline
 aws configure
 ```
-## Deployment
+## Docker
 Use docker to build a container
 ```commandline
- docker build --tag puzzle_server .
+docker build -t puzzle-server .
 ```
 Create an environment file that lets docker use your AWS environment variables. These can be for in `~/.aws` if you set up the environment using the aws cli tool.
 ```
@@ -75,7 +75,7 @@ AWS_SECRET_ACCESS_KEY=<more super secret info>
 ```
 Run the container with
 ```commandline
-docker run --env-file .docker_image_test_env_vars -p 5000:5000  puzzle_server
+docker run --env-file .docker_image_test_env_vars -p 5000:5000  puzzle-server
 ```
 and then use
 ```commandline
@@ -84,3 +84,29 @@ curl http://0.0.0.0:5000/hello
 to check that `Hello, World!` is sent back.
 
 Go to the ECR console page and use the instructions there to upload the container to ECR.
+## Deploying to AWS Lambda with `zappa`
+Create a virtual environment. As of 12/8/2023, `zappa` works with Python 3.10.
+```commandline
+python3.10 -m venv deployvenv
+source deployvenv/bin/activate
+```
+Install the deployment dependencies.
+```commandline
+pip install ".[deploy]"
+```
+You need the correct IAM permissions to run `zappa`. The `zappa_settings.json` should look like
+```json
+{
+    "dev-zappa": {
+        "app_function": "run_server.app",
+        "aws_region": "eu-north-1",
+        "profile_name": "default",
+        "project_name": "puzzleserver",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-js5gk7j82",
+        "slim_handler": true,
+        "architecture": "arm64"
+    }
+}
+```
+It can take a few minutes for the deployment to finish fully.

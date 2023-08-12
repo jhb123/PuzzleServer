@@ -1,0 +1,12 @@
+{
+    "dev-zappa": {
+        "app_function": "run_server.app",
+        "aws_region": "eu-north-1",
+        "profile_name": "default",
+        "project_name": "puzzleserver",
+        "runtime": "python3.10",
+        "s3_bucket": "zappa-js5gk7j82",
+        "slim_handler": true,
+        "architecture": "arm64"
+    }
+}

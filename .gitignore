@@ -1,4 +1,5 @@
 .docker_image_test_env_vars
+deployvenv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
