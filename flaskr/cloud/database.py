@@ -72,8 +72,8 @@ class UserDatabase:
 
         try:
             user_already_used = self._check_username_registered(username)
-        except ClientError:
-            logger.exception()
+        except ClientError as e:
+            logger.exception(e)
             return False
 
         if email_already_used or user_already_used:
@@ -88,8 +88,8 @@ class UserDatabase:
                     username_set = True
                 case _:
                     username_set = False
-        except ClientError:
-            logger.exception()
+        except ClientError as e:
+            logger.exception(e)
             return False
 
         try:
@@ -100,8 +100,8 @@ class UserDatabase:
                 case _:
                     self.username_table.delete_item(Key={"username": username})
                     email_set = False
-        except ClientError:
-            logger.exception()
+        except ClientError as e:
+            logger.exception(e)
             self.username_table.delete_item(Key={"username": username})
             return False
 
@@ -159,7 +159,7 @@ class PuzzleDatabase:
         if get_file_extension(puzzle_image_fname) != "png":
             raise ValueError("puzzle icon must be a PNG file")
 
-        response = self.table.put_item(
+        self.table.put_item(
             Item={
                 "id": puzzle_id,
                 "puzzle": puzzle_json_fname,

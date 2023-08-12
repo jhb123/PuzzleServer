@@ -1,4 +1,4 @@
-from os import PathLike, makedirs
+from os import PathLike
 
 from flask import Flask
 
@@ -83,11 +83,9 @@ def create_app(
             JWT_KEY=test_config["JWT_KEY"],
         )
 
-    # ensure the instance folder exists
-    try:
-        makedirs(app.instance_path)
-    except OSError:
-        pass
+    @app.route("/")
+    def index():
+        return "Welcome to the Puzzle Server"
 
     # a test route
     @app.route("/hello")
