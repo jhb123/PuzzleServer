@@ -1,7 +1,5 @@
 # PuzzleServer
-[![coverage](https://github.com/jhb123/PuzzleServer/actions/workflows/coverage.yml/badge.svg)](https://htmlpreview.github.io/?https://github.com/jhb123/PuzzleServerCoverageReports/blob/main/coverage/index.html)
-
-[//]: # (![Static Badge]&#40;https://img.shields.io/badge/Coverage-39.0%25-%23FF0000&#41;)
+[![Publish](https://github.com/jhb123/PuzzleServer/actions/workflows/publish.yml/badge.svg)](https://htmlpreview.github.io/?https://github.com/jhb123/PuzzleServerCoverageReports/blob/main/coverage/index.html)
 
 [Coverage report](https://htmlpreview.github.io/?https://github.com/jhb123/PuzzleServerCoverageReports/blob/main/coverage/index.html)
 ## Running the server locally
