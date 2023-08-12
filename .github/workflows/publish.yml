@@ -43,7 +43,6 @@ jobs:
   publish:
     name: Publish report
     needs: build
-    if: github.event_name == 'pull_request' # && github.base_ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
