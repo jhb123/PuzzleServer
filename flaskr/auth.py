@@ -93,7 +93,10 @@ def login():
     if status_code != 200:
         return "Error retreiving user data", status_code
 
-    user_id = response["Item"]["id"]
+    try:
+        user_id = response["Item"]["id"]
+    except KeyError:
+        return jsonify({"error": "Invalid credentials"}), 401
 
     response = current_app.user_database.get_user_data(user_id)
 
