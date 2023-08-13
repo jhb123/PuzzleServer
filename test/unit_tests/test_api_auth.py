@@ -109,13 +109,27 @@ def test_register_valid_login_status(flask_client):
     assert response.status == "200 OK"
 
 
-def test_register_invalid_login_status(flask_client):
+def test_register_invalid_login_password_status(flask_client):
     user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
     flask_client.post("/auth/register", json=user_json)
 
     user_json = {
         "username": "uname",
         "password": "wrongpword",
+    }
+    flask_client.post("/auth/register", json=user_json)
+    response = flask_client.post("/auth/login", json=user_json)
+
+    assert response.status == "401 UNAUTHORIZED"
+
+
+def test_register_invalid_login_username_status(flask_client):
+    user_json = {"username": "uname", "password": "pword", "email": "test@email.com"}
+    flask_client.post("/auth/register", json=user_json)
+
+    user_json = {
+        "username": "wronguname",
+        "password": "password",
     }
     flask_client.post("/auth/register", json=user_json)
     response = flask_client.post("/auth/login", json=user_json)
